@@ -1,0 +1,55 @@
+\documentclass{article}
+
+\usepackage[utf8]{inputenc} % Required for inputting international characters
+\usepackage{babel}
+\usepackage[T1]{fontenc} % Output font encoding for international characters
+
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{bbm}
+%\usepackage{mathpazo} % Use the Palatino font by default
+%\usepackage{pazocal}
+\usepackage{mathtools}
+\usepackage{physics}
+
+\usepackage{xcolor}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{shellesc}
+\usepackage{svg}
+\usepackage[linkcolor=blue, colorlinks=true]{hyperref}
+
+\usepackage[backend=bibtex,style=authoryear,natbib=true]{biblatex} % Use the bibtex backend with the authoryear citation style (which resembles APA)
+
+\addbibresource{literature.bib} % The filename of the bibliography
+
+\usepackage[autostyle=true]{csquotes} % Required to generate language-dependent quotes in the bibliography
+\usepackage{color}
+
+
+\newcommand{\argmin}{\operatornamewithlimits{argmin}}
+\newcommand{\argmax}{\operatornamewithlimits{argmax}}
+\renewcommand{\i}{{i\mkern1mu}}
+\newcommand{\del}{\partial}
+\newcommand{\cev}[1]{\reflectbox{\ensuremath{\vec{\reflectbox{\ensuremath{#1}}}}}}
+
+\newcommand{\pushright}[1]{\ifmeasuring@#1\else\omit\hfill$\displaystyle#1$\fi\ignorespaces}
+\newcommand{\pushleft}[1]{\ifmeasuring@#1\else\omit$\displaystyle#1$\hfill\fi\ignorespaces}
+
+\begin{document}
+
+
+
+\centerline{\sc \large Documentation for the Matrix Functions package}
+\vspace{.5pc}
+\vspace{2pc}
+
+\tableofcontents
+
+\section{Introduction}
+\vdots
+
+\include{matrix-functions-docu-appendix}
+
+\end{document}
+
