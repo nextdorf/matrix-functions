@@ -91,7 +91,7 @@ Let $f(x)$ be a analytical in the eigenvalues of $A$:
 f(A) =& \frac 1{\lambda_1 - \lambda_2} \left[(f(\lambda_1) - f(\lambda_2))A - (\lambda_2 f(\lambda_1) - \lambda_1 f(\lambda_2)) \mathbbm 1\right] \label{func 2dim}
 \end{align}
 
-\subsection{Example}
+\subsection{Example for 2 dimensions}
 \begin{align}
 \sin(x+a) = \sin(x)\cos(a) + \cos(x)\sin(a) \label{sin(a+b)}
 \end{align}
@@ -137,7 +137,53 @@ f(\lambda_{1,2}) =& e^{\pm \i y}
 =& \frac 1{2\i \sin a} \left[2\i \sin y \cos x \sin a + 2\i \cos y \sin a \sin x \right] \nonumber\\
 =& \sin y \cos x + \cos y \sin x\ \ \ \text{Q.E.D.}
 \end{align}
+
+\subsection{general case}
+Cayley-Hamilton: $A \in \mathbb C^{n\times n}:\ p_A(A) = 0$
+\begin{align}
+p_A(\lambda) =& \det(\lambda\mathbbm 1 - A) = \prod_{k=1}^n(\lambda - \lambda_k) = \lambda^n - \sum_{k=0}^{n-1} \Lambda_k \lambda^k\nonumber\\
+\Rightarrow \Lambda_k =& \sum_{\substack{j_1,\dots,j_{n-k} = 1,\\ j_1<\dots<j_{n-k}}}^n (-1)^{n-k+1} \prod_{i=1}^{n-k} \lambda_{j_i} \\
+A^n =& \sum_{k=0}^{n-1} \Lambda_k A^k\nonumber\\
+A^m \eqqcolon& \sum_{k=0}^{n-1} \alpha_{mk} A^k\\
+A^{m+1} =& \sum_{k=0}^{n-2} \alpha_{mk} A^{k+1} + \alpha_{m,n-1} A^n \nonumber\\
+=& \sum_{k=1}^{n-1} (\alpha_{m,k-1} + \alpha_{m,n-1}\Lambda_k) A^k + \alpha_{m,n-1}\Lambda_0 A^0 \nonumber\\
+\end{align}
+\begin{align}
+\alpha_{m+1,0} = \alpha_{m,n-1} \Lambda_0,\ \alpha_{m+1,k} = \alpha_{m,k-1} + \alpha_{m,n-1}\Lambda_k \label{recurrent ndim}
+\end{align}
+\begin{align}
+\alpha_{m,n-1} =& \sum_{k=1}^{n-1} \alpha_{m-k,n-1}\Lambda_{n-k} + \alpha_{m+1-n,0} \nonumber\\
+=& \sum_{k=1}^n \alpha_{m-k,n-1}\Lambda_{n-k} \nonumber\\
+=& \sum_{k=0}^{n-1} \alpha_{m+k-n,n-1}\Lambda_k\\
+\Rightarrow 0=& \alpha_{m+n,n-1} - \sum_{k=0}^{n-1} \alpha_{m+k,n-1}\Lambda_k \nonumber\\
+=& \big( \Delta^n - \sum_{k=0}^{n-1} \Delta^k \Lambda_k \big) \alpha_{m, n-1} \ \ \ \text{with}\ \Delta \alpha_{mk} = \alpha_{m+1,k}\nonumber\\
+=& p_A(\Delta) \alpha_{m, n-1}
+\end{align}
+General ansatz, similiar to the two dimensional case:
+\begin{align}
+\alpha_{m,n-1} = \sum_{k=1}^n \beta_k \lambda_k^m
+\end{align}
+For $m<n$:
+\begin{align}
+\alpha_{mk} =& \delta_{mk}\\
+\Rightarrow \delta_{m,n-1} =& \beta_k \lambda_k^m\\
+\Rightarrow \vec \beta \perp& \sum_{k=1}^n \hat e_k \lambda_k^m \eqqcolon \vec \lambda^{(m)} \ \text{for}\ m=0\dots n-2\\
+\tilde\beta_k \coloneqq& \det(\hat e_k | \vec\lambda^{(n-2)} | \vec\lambda^{(n-3)} | \dots | \vec\lambda^{(0)})\nonumber\\
+\beta =& \tilde\beta /\big( \tilde \beta \cdot \lambda^{(n-1)} \big)
+\end{align}
+$\eqref{recurrent ndim}$ yields for $\alpha_{mk}$:
+\begin{align}
+\alpha_{mk} =& \sum_{j=1}^{k+1} \alpha_{m-j,n-1} \Lambda_{k+1-j} \nonumber\\
+=& \sum_{j=1}^{k+1} \vec\beta\cdot\vec\lambda^{(m-j)} \Lambda_{k+1-j} \nonumber\\
+=& \vec\beta\cdot \sum_{j=0}^k \Lambda_j \vec\lambda^{(m+j-k-1)}
+\end{align}
+As in the two dimensional case this defines $f(A)$ if $f$ is analytical in the eigenvalues of $A$:
+\begin{align}
+A^m =& \sum_{k=0}^{n-1} A^k \sum_{j=0}^k \Lambda_j  \beta \cdot \lambda^{(m+j-k-1)}\\
+f(A) =& \sum_{k=0}^{n-1} A^k \sum_{j=0}^k \Lambda_j \sum_{i=1}^n \beta_i \lambda_i^{j-k-1} f(\lambda_i)
+\end{align}
 \include{matrix-functions-docu-appendix}
+
 
 \end{document}
 
