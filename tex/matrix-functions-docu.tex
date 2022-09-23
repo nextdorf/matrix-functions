@@ -47,7 +47,7 @@
 \tableofcontents
 
 \section{Mathematical background}
-\subsection{2 dimensions}
+\subsection{2 dimensional case}
 Cayley-Hamilton: $A\in \mathbb C^{n\times n}:\ p_A(A)=0$
 For $n=2$:
 \begin{align}
@@ -99,28 +99,28 @@ f(A) =& \frac 1{\lambda_1 - \lambda_2} \left[(f(\lambda_1) - f(\lambda_2))A - (\
 \sin(x) \eqqcolon& \alpha\sin(x+a) + \beta\sin(x+2a) \nonumber\\
 =& \alpha\big(\sin(x)\cos(a) + \sin(a)\cos(x)\big) + \beta\big(\sin(x)\cos(2a) + \sin(2a)\cos(x)\big) \nonumber\\
 =& \sin x\big( \alpha\cos a + \beta\cos(2a) \big) + \cos x\big( \alpha\sin a + \beta\sin(2a) \big) \\
-\left( \begin{array}{c} 1 \\ 0 \end{array}\right) =& \left( \begin{array}{cc} \cos a & \cos(2a) \\ \sin a & \sin(2a) \end{array}\right) \left( \begin{array}{c} \alpha \\ \beta \end{array}\right)\\
-\left( \begin{array}{c} \alpha \\ \beta \end{array}\right) =& \left( \begin{array}{cc} \cos a & \cos(2a) \\ \sin a & \sin(2a) \end{array}\right)^{-1} \left( \begin{array}{c} 1 \\ 0 \end{array}\right) \nonumber\\
-=& \frac 1{\cos a\sin(2a) - \sin a\cos(2a)} \left( \begin{array}{cc} \sin(2a) & -\cos(2a) \\ -\sin a & \cos a \end{array}\right) \left( \begin{array}{c} 1 \\ 0 \end{array}\right) \nonumber\\
-=& \frac 1{\cos a\sin(2a) - \sin a\cos(2a)} \left( \begin{array}{c} \sin(2a) \\ -\sin a \end{array}\right) \nonumber\\
-=& \frac 1{\cos a(2\sin a \cos a) - \sin a(\cos^2 a - \sin^2 a)} \left( \begin{array}{c} \sin(2a) \\ -\sin a \end{array}\right) \nonumber\\
-=& \frac 1{\cos a(2\sin a \cos a) - \sin a(\cos^2 a - \sin^2 a)} \left( \begin{array}{c} \sin(2a) \\ -\sin a \end{array}\right) \nonumber\\
-=& \frac 1{\sin a(\sin^2 a + \cos^2 a)} \left( \begin{array}{c} \sin(2a) \\ -\sin a \end{array}\right) \nonumber\\
-=& \left( \begin{array}{c} \sin(2a)/\sin(a) \\ -1 \end{array}\right) \nonumber
+\begin{pmatrix} 1 \\ 0 \end{pmatrix} =& \begin{pmatrix} \cos a & \cos(2a) \\ \sin a & \sin(2a) \end{pmatrix} \begin{pmatrix} \alpha \\ \beta \end{pmatrix}\\
+\begin{pmatrix} \alpha \\ \beta \end{pmatrix} =& \begin{pmatrix} \cos a & \cos(2a) \\ \sin a & \sin(2a) \end{pmatrix}^{-1} \begin{pmatrix} 1 \\ 0 \end{pmatrix} \nonumber\\
+=& \frac 1{\cos a\sin(2a) - \sin a\cos(2a)} \begin{pmatrix} \sin(2a) & -\cos(2a) \\ -\sin a & \cos a \end{pmatrix} \begin{pmatrix} 1 \\ 0 \end{pmatrix} \nonumber\\
+=& \frac 1{\cos a\sin(2a) - \sin a\cos(2a)} \begin{pmatrix} \sin(2a) \\ -\sin a \end{pmatrix} \nonumber\\
+=& \frac 1{\cos a(2\sin a \cos a) - \sin a(\cos^2 a - \sin^2 a)}  \begin{pmatrix} \sin(2a) \\ -\sin a \end{pmatrix} \nonumber\\
+=& \frac 1{\cos a(2\sin a \cos a) - \sin a(\cos^2 a - \sin^2 a)}  \begin{pmatrix} \sin(2a) \\ -\sin a \end{pmatrix} \nonumber\\
+=& \frac 1{\sin a(\sin^2 a + \cos^2 a)} \begin{pmatrix} \sin(2a) \\ -\sin a \end{pmatrix} \nonumber\\
+=& \begin{pmatrix} \sin(2a)/\sin(a) \\ -1 \end{pmatrix} \nonumber
 \end{align}
 \begin{align}
 \Rightarrow& \alpha = \frac{\sin(2a)}{\sin a} \overset{\eqref{sin(a+b)}}= 2\cos a,\ \beta = -1\\
 \end{align}
 \begin{align}
 \Rightarrow \sin(x) =& 2\cos(a) \sin(x-a) - \sin(x-2a)\\
-\left(\begin{array}{c} \sin x \\ \sin(x - a) \end{array}\right) =& \underbrace{\left(\begin{array}{cc} 2\cos a & -1 \\ 1 & 0 \end{array}\right)}_{\eqqcolon M(a)} \left(\begin{array}{c} \sin (x-a) \\ \sin(x-2a) \end{array}\right)\\
-\Rightarrow \left(\begin{array}{c} \sin (x+na) \\ \sin(x+(n-1)a) \end{array}\right) =& M(a)^n \left(\begin{array}{c} \sin x \\ \sin(x-a) \end{array}\right)\\
-\Rightarrow \sin(x+na) =& \hat e_1 \cdot M(a)^n \left(\begin{array}{c} \sin x \\ \sin(x-a) \end{array}\right)\\
-\Rightarrow \sin(x+y) =& \hat e_1 \cdot e^{\frac ya \ln(M(a))} \left(\begin{array}{c} \sin x \\ \sin(x-a) \end{array}\right)
+\begin{pmatrix} \sin x \\ \sin(x - a) \end{pmatrix} =& \underbrace{\begin{pmatrix} 2\cos a & -1 \\ 1 & 0 \end{pmatrix}}_{\eqqcolon M(a)} \begin{pmatrix} \sin (x-a) \\ \sin(x-2a) \end{pmatrix}\\
+\Rightarrow \begin{pmatrix} \sin (x+na) \\ \sin(x+(n-1)a) \end{pmatrix} =& M(a)^n \begin{pmatrix} \sin x \\ \sin(x-a) \end{pmatrix}\\
+\Rightarrow \sin(x+na) =& \hat e_1 \cdot M(a)^n \begin{pmatrix} \sin x \\ \sin(x-a) \end{pmatrix}\\
+\Rightarrow \sin(x+y) =& \hat e_1 \cdot e^{\frac ya \ln(M(a))} \begin{pmatrix} \sin x \\ \sin(x-a) \end{pmatrix}
 \end{align}
 We can now use the formula for two dimensions $\eqref{func 2dim}$ in order to solve for $\sin(x+y)$:
 \begin{align}
-\sin(x+y) \overset{\eqref{func 2dim}}=& \hat e_1 \cdot \frac 1{\lambda_1 - \lambda_2} \left[(f(\lambda_1) - f(\lambda_2))M(a) - (\lambda_2 f(\lambda_1) - \lambda_1 f(\lambda_2)) \mathbbm 1\right] \left(\begin{array}{c} \sin x \\ \sin(x-a) \end{array}\right) \nonumber\\
+\sin(x+y) \overset{\eqref{func 2dim}}=& \hat e_1 \cdot \frac 1{\lambda_1 - \lambda_2} \left[(f(\lambda_1) - f(\lambda_2))M(a) - (\lambda_2 f(\lambda_1) - \lambda_1 f(\lambda_2)) \mathbbm 1\right] \begin{pmatrix} \sin x \\ \sin(x-a) \end{pmatrix} \nonumber\\
 &\ \ \text{with}\ f(\lambda) = e^{\frac ya \ln\lambda}
 \end{align}
 \begin{align}
@@ -130,15 +130,15 @@ We can now use the formula for two dimensions $\eqref{func 2dim}$ in order to so
 f(\lambda_{1,2}) =& e^{\pm \i y}
 \end{align}
 \begin{align}
-\sin(x+y) =& \hat e_1 \cdot \frac 1{2\i \sin a} \left[2\i \sin(y) M(a) - 2\i \sin(y - a) \mathbbm 1\right] \left(\begin{array}{c} \sin x \\ \sin(x-a) \end{array}\right) \nonumber\\
-=& \hat e_1 \cdot \frac 1{2\i \sin a} \left[2\i \sin(y)  \left(\begin{array}{c} \sin(x+a) \\ \sin x \end{array}\right) - 2\i \sin(y - a) \left(\begin{array}{c} \sin x \\ \sin(x-a) \end{array}\right) \right] \nonumber\\
+\sin(x+y) =& \hat e_1 \cdot \frac 1{2\i \sin a} \left[2\i \sin(y) M(a) - 2\i \sin(y - a) \mathbbm 1\right] \begin{pmatrix} \sin x \\ \sin(x-a) \end{pmatrix} \nonumber\\
+=& \hat e_1 \cdot \frac 1{2\i \sin a} \left[2\i \sin(y)  \begin{pmatrix} \sin(x+a) \\ \sin x \end{pmatrix} - 2\i \sin(y - a) \begin{pmatrix} \sin x \\ \sin(x-a) \end{pmatrix} \right] \nonumber\\
 =& \frac 1{2\i \sin a} \left[2\i \sin y \sin(x+a) - 2\i \sin(y - a) \sin x \right] \nonumber\\
 =& \frac 1{2\i \sin a} \left[2\i \sin y (\sin x \cos a + \cos x \sin a) - 2\i (\sin y \cos a - \cos y \sin a) \sin x \right] \nonumber\\
 =& \frac 1{2\i \sin a} \left[2\i \sin y \cos x \sin a + 2\i \cos y \sin a \sin x \right] \nonumber\\
 =& \sin y \cos x + \cos y \sin x\ \ \ \text{Q.E.D.}
 \end{align}
 
-\subsection{general case}
+\subsection{General case}
 Cayley-Hamilton: $A \in \mathbb C^{n\times n}:\ p_A(A) = 0$
 \begin{align}
 p_A(\lambda) =& \det(\lambda\mathbbm 1 - A) = \prod_{k=1}^n(\lambda - \lambda_k) = \lambda^n - \sum_{k=0}^{n-1} \Lambda_k \lambda^k\nonumber\\
