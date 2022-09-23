@@ -46,9 +46,97 @@
 
 \tableofcontents
 
-\section{Introduction}
-\vdots
+\section{Mathematical background}
+\subsection{2 dimensions}
+Cayley-Hamilton: $A\in \mathbb C^{n\times n}:\ p_A(A)=0$
+For $n=2$:
+\begin{align}
+p_A(\lambda) =& \det(\lambda\mathbbm 1 - A) \nonumber\\
+=& (\lambda - \lambda_1)(\lambda - \lambda_2) \nonumber\\
+=& \lambda^2 -\lambda\tr A + \det A\\
+\Rightarrow A^2 =& A \tr A - \mathbbm 1 \det A\\
+\Rightarrow A^n =& a_n A + b_n\mathbbm 1\\
+\Rightarrow A^{n+1} =& a_n A^2 + b_n A \nonumber\\
+=& a_n \big( A\tr A - \mathbbm 1\det A \big) + b_n A \nonumber\\
+=& \big(a_n\tr A + b_n\big)A - \big(a_n\det A \big)\mathbbm 1 \nonumber
+\end{align}
+\begin{align}
+a_{n+1} =& a_n\tr A + b_n,\ b_{n+1} = -a_n\det A,\ a_0=0,\ a_1=1,\ b_0=1,\ b_1=0 \label{recurrent 2dim}\\
+\Rightarrow a_{n+2} =& a_{n+1}\tr A - a_n\det A \nonumber\\
+\Rightarrow 0 =& \big(\Delta^2 - \Delta\tr A + \det A\big) a_n\ \ \ \ \text{with}\ \Delta a_n \coloneqq a_{n+1} \nonumber\\
+=& p_A(\Delta) a_n\nonumber\\
+=& (\Delta-\lambda_1)(\Delta-\lambda_2) a_n
+\end{align}
+For a general ansatz we choose $a_n$ as a linear combination of the solutions of $0=(\Delta-\lambda_1)a_n$ and $0=(\Delta-\lambda_2)a_n$:
+\begin{align}
+a_n =& b_1 \lambda_1^n + b_2\lambda_2^n
+\end{align}
+\begin{align}
+&\Rightarrow a_0 = b_1 + b_2 = 0,\ a_1 = b_1\lambda_1 + b_2\lambda_2 = 1 \nonumber\\
+&\Rightarrow b_2 = -b_1,\ b_1(\lambda_1 - \lambda_2) = 1 \nonumber\\
+&\Rightarrow b_1 = -b_2 = \frac 1 {\lambda_1 - \lambda_2}
+\end{align}
+\begin{align}
+a_n = \frac {\lambda_1^n - \lambda_2^n}{\lambda_1 - \lambda_2},\ b_n \overset{\eqref{recurrent 2dim}}=-\frac {\lambda_2\lambda_1^n - \lambda_1\lambda_2^n}{\lambda_1 - \lambda_2}
+\end{align}
+\begin{align}
+A^n =& \frac {\lambda_1^n - \lambda_2^n}{\lambda_1 - \lambda_2} A - \frac {\lambda_2\lambda_1^n - \lambda_1\lambda_2^n}{\lambda_1 - \lambda_2} \mathbbm 1
+\end{align}
+Let $q(x)$ be a polynomial:
+\begin{align}
+q(A) =& \frac 1{\lambda_1 - \lambda_2} \left[(q(\lambda_1) - q(\lambda_2))A - (\lambda_2 q(\lambda_1) - \lambda_1 q(\lambda_2)) \mathbbm 1\right]
+\end{align}
+Let $f(x)$ be a analytical in the eigenvalues of $A$:
+\begin{align}
+f(A) =& \frac 1{\lambda_1 - \lambda_2} \left[(f(\lambda_1) - f(\lambda_2))A - (\lambda_2 f(\lambda_1) - \lambda_1 f(\lambda_2)) \mathbbm 1\right] \label{func 2dim}
+\end{align}
 
+\subsection{Example}
+\begin{align}
+\sin(x+a) = \sin(x)\cos(a) + \cos(x)\sin(a) \label{sin(a+b)}
+\end{align}
+\begin{align}
+\sin(x) \eqqcolon& \alpha\sin(x+a) + \beta\sin(x+2a) \nonumber\\
+=& \alpha\big(\sin(x)\cos(a) + \sin(a)\cos(x)\big) + \beta\big(\sin(x)\cos(2a) + \sin(2a)\cos(x)\big) \nonumber\\
+=& \sin x\big( \alpha\cos a + \beta\cos(2a) \big) + \cos x\big( \alpha\sin a + \beta\sin(2a) \big) \\
+\left( \begin{array}{c} 1 \\ 0 \end{array}\right) =& \left( \begin{array}{cc} \cos a & \cos(2a) \\ \sin a & \sin(2a) \end{array}\right) \left( \begin{array}{c} \alpha \\ \beta \end{array}\right)\\
+\left( \begin{array}{c} \alpha \\ \beta \end{array}\right) =& \left( \begin{array}{cc} \cos a & \cos(2a) \\ \sin a & \sin(2a) \end{array}\right)^{-1} \left( \begin{array}{c} 1 \\ 0 \end{array}\right) \nonumber\\
+=& \frac 1{\cos a\sin(2a) - \sin a\cos(2a)} \left( \begin{array}{cc} \sin(2a) & -\cos(2a) \\ -\sin a & \cos a \end{array}\right) \left( \begin{array}{c} 1 \\ 0 \end{array}\right) \nonumber\\
+=& \frac 1{\cos a\sin(2a) - \sin a\cos(2a)} \left( \begin{array}{c} \sin(2a) \\ -\sin a \end{array}\right) \nonumber\\
+=& \frac 1{\cos a(2\sin a \cos a) - \sin a(\cos^2 a - \sin^2 a)} \left( \begin{array}{c} \sin(2a) \\ -\sin a \end{array}\right) \nonumber\\
+=& \frac 1{\cos a(2\sin a \cos a) - \sin a(\cos^2 a - \sin^2 a)} \left( \begin{array}{c} \sin(2a) \\ -\sin a \end{array}\right) \nonumber\\
+=& \frac 1{\sin a(\sin^2 a + \cos^2 a)} \left( \begin{array}{c} \sin(2a) \\ -\sin a \end{array}\right) \nonumber\\
+=& \left( \begin{array}{c} \sin(2a)/\sin(a) \\ -1 \end{array}\right) \nonumber
+\end{align}
+\begin{align}
+\Rightarrow& \alpha = \frac{\sin(2a)}{\sin a} \overset{\eqref{sin(a+b)}}= 2\cos a,\ \beta = -1\\
+\end{align}
+\begin{align}
+\Rightarrow \sin(x) =& 2\cos(a) \sin(x-a) - \sin(x-2a)\\
+\left(\begin{array}{c} \sin x \\ \sin(x - a) \end{array}\right) =& \underbrace{\left(\begin{array}{cc} 2\cos a & -1 \\ 1 & 0 \end{array}\right)}_{\eqqcolon M(a)} \left(\begin{array}{c} \sin (x-a) \\ \sin(x-2a) \end{array}\right)\\
+\Rightarrow \left(\begin{array}{c} \sin (x+na) \\ \sin(x+(n-1)a) \end{array}\right) =& M(a)^n \left(\begin{array}{c} \sin x \\ \sin(x-a) \end{array}\right)\\
+\Rightarrow \sin(x+na) =& \hat e_1 \cdot M(a)^n \left(\begin{array}{c} \sin x \\ \sin(x-a) \end{array}\right)\\
+\Rightarrow \sin(x+y) =& \hat e_1 \cdot e^{\frac ya \ln(M(a))} \left(\begin{array}{c} \sin x \\ \sin(x-a) \end{array}\right)
+\end{align}
+We can now use the formula for two dimensions $\eqref{func 2dim}$ in order to solve for $\sin(x+y)$:
+\begin{align}
+\sin(x+y) \overset{\eqref{func 2dim}}=& \hat e_1 \cdot \frac 1{\lambda_1 - \lambda_2} \left[(f(\lambda_1) - f(\lambda_2))M(a) - (\lambda_2 f(\lambda_1) - \lambda_1 f(\lambda_2)) \mathbbm 1\right] \left(\begin{array}{c} \sin x \\ \sin(x-a) \end{array}\right) \nonumber\\
+&\ \ \text{with}\ f(\lambda) = e^{\frac ya \ln\lambda}
+\end{align}
+\begin{align}
+\lambda_{1,2} =& \frac 12\tr M(a) \pm \sqrt{\big(\frac 12\tr (M(a))\big)^2 - \det(M(a))}\nonumber\\
+=& \cos a \pm \sqrt{\cos^2 a - 1}\nonumber\\
+=& e^{\pm \i a}\\
+f(\lambda_{1,2}) =& e^{\pm \i y}
+\end{align}
+\begin{align}
+\sin(x+y) =& \hat e_1 \cdot \frac 1{2\i \sin a} \left[2\i \sin(y) M(a) - 2\i \sin(y - a) \mathbbm 1\right] \left(\begin{array}{c} \sin x \\ \sin(x-a) \end{array}\right) \nonumber\\
+=& \hat e_1 \cdot \frac 1{2\i \sin a} \left[2\i \sin(y)  \left(\begin{array}{c} \sin(x+a) \\ \sin x \end{array}\right) - 2\i \sin(y - a) \left(\begin{array}{c} \sin x \\ \sin(x-a) \end{array}\right) \right] \nonumber\\
+=& \frac 1{2\i \sin a} \left[2\i \sin y \sin(x+a) - 2\i \sin(y - a) \sin x \right] \nonumber\\
+=& \frac 1{2\i \sin a} \left[2\i \sin y (\sin x \cos a + \cos x \sin a) - 2\i (\sin y \cos a - \cos y \sin a) \sin x \right] \nonumber\\
+=& \frac 1{2\i \sin a} \left[2\i \sin y \cos x \sin a + 2\i \cos y \sin a \sin x \right] \nonumber\\
+=& \sin y \cos x + \cos y \sin x\ \ \ \text{Q.E.D.}
+\end{align}
 \include{matrix-functions-docu-appendix}
 
 \end{document}
