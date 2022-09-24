@@ -182,6 +182,17 @@ As in the two dimensional case this defines $f(A)$ if $f$ is analytical in the e
 A^m =& \sum_{k=0}^{n-1} A^k \sum_{j=0}^k \Lambda_j  \beta \cdot \lambda^{(m+j-k-1)}\\
 f(A) =& \sum_{k=0}^{n-1} A^k \sum_{j=0}^k \Lambda_j \sum_{i=1}^n \beta_i \lambda_i^{j-k-1} f(\lambda_i)
 \end{align}
+
+\subsubsection*{Sanity check}
+\begin{align*}
+\Lambda_0 =& -\det(A),\ \Lambda_1 = \tr A,\ \beta = \frac 1 {\lambda_1 - \lambda_2}\begin{pmatrix} 1 \\ -1 \end{pmatrix}\\
+f(A) =& \mathbbm 1 \Lambda_0 \frac 1{\lambda_1 - \lambda_2} \big(f(\lambda_1)/\lambda_1 - f(\lambda_2)/\lambda_2 \big)\\
+&+ A \Lambda_0 \frac 1{\lambda_1 - \lambda_2} \big(f(\lambda_1)/\lambda_1^2 - f(\lambda_2)/\lambda_2^2 \big)\\
+&+ A \Lambda_1 \frac 1{\lambda_1 - \lambda_2} \big(f(\lambda_1)/\lambda_1 - f(\lambda_2)/\lambda_2 \big)\\
+=& \frac 1{\lambda_1-\lambda_2}\big[ \lambda_1f(\lambda_2) - \lambda_2f(\lambda_1) \big] \mathbbm 1 \\
+&+ \frac 1{\lambda_1-\lambda_2}\big[ (\frac{\lambda_1}{\lambda_2} - \frac{\lambda_1+\lambda_2}{\lambda_2}) f(\lambda_2) - (\frac{\lambda_2}{\lambda_1} - \frac{\lambda_1+\lambda_2}{\lambda_1}) f(\lambda_1) \big] A\\
+=& \frac 1{\lambda_1-\lambda_2}\big[ \big( \lambda_1f(\lambda_2) - \lambda_2f(\lambda_1) \big) \mathbbm 1 + \big(f(\lambda_1) - f(\lambda_2)\big) A\big] 
+\end{align*}
 \include{matrix-functions-docu-appendix}
 
 
