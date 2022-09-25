@@ -17,29 +17,11 @@ on:
 jobs:
   # This workflow contains a single job called "build"
   build:
-    # The type of runner that the job will run on
-    runs-on: ubuntu-latest
-
-    # Steps represent a sequence of tasks that will be executed as part of the job
-    steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v3
-
-      # Runs a single command using the runners shell
-      - name: Run a one-line script
-        run: echo Hello, world!
-
-      # Runs a set of commands using the runners shell
-      - name: Run a multi-line script
-        run: |
-          echo Add other actions to build,
-          echo test, and deploy your project.
-
-  build_latex:
     runs-on: ubuntu-latest
     
     steps:
       - uses: actions/checkout@v3
+
       - name: LaTeX compilation
         # You may pin to the exact commit or the version.
         # uses: dante-ev/latex-action@49cf7cb5f79e7b2006dbdffea85e02bec0b6244b
@@ -55,6 +37,19 @@ jobs:
           #args: # optional, default is -pdf -latexoption=-file-line-error -latexoption=-interaction=nonstopmode
           # Install extra packages by apt-get
           #extra_system_packages: # optional
+
+      - name: Setup python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10' 
+          cache: 'pip'
+          cache-dependency-path: 'pyproject.toml'
+      
+      - name: Build python package
+        run: |
+          pip install --upgrade build
+          python -m build
+
       - name: Upload documentation to releases
         uses: marvinpinto/action-automatic-releases@v1.2.1
         with:
@@ -62,3 +57,4 @@ jobs:
           automatic_release_tag: latest
           files: |
             tex/matrix-functions-docu.pdf
+            dist/*
