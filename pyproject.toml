@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+
+[tool.setuptools]
+packages = ["matrixfuncs"]
+
+[project]
+name = "matrixfuncs"
+version = "0.0.1"
+description = "Provides classes for calculating with krylov spaces and matrix functions"
+readme = "README.md"
+requires-python = ">=3.5"
+keywords = ["krylov", "matrix", "function"]
+license = {text = "GPL-3.0-only"}
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+  "Intended Audience :: Science/Research",
+  "Programming Language :: Python :: 3",
+  "Topic :: Scientific/Engineering :: Mathematics",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  ]
+dependencies = [
+  "numpy",
+  ]
+
+
+[project.urls]
+"Github" = "https://github.com/nextdorf/matrix-functions"
+
