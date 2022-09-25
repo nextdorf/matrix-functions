@@ -49,6 +49,6 @@ print(error)
 plt.plot(ts, sinFromMFunc)
 plt.savefig('sinFromMFunc.png', dpi=200)
 ```
-![Output of plt.plot(ts, sinFromMFunc)](https://raw.githubusercontent.com/nextdorf/matrix-functions/blob/main/sinFromMFunc.png?raw=true)
+![Output of plt.plot(ts, sinFromMFunc)](https://raw.githubusercontent.com/nextdorf/matrix-functions/main/sinFromMFunc.png?raw=true)
 
 
