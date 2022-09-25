@@ -46,7 +46,7 @@ jobs:
         uses: dante-ev/latex-action@2021-A
         with:
           # The root LaTeX file to be compiled
-          root_file: tex/matrix-functions-docu.tex
+          root_file: matrix-functions-docu.tex
           # The working directory for the latex compiler to be invoked
           working_directory: tex
           # LaTeX engine to be used
