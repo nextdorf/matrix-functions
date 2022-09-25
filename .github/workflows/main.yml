@@ -59,6 +59,6 @@ jobs:
         uses: marvinpinto/action-automatic-releases@v1.2.1
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          prerelease: false
+          automatic_release_tag: latest
           files: |
             tex/matrix-functions-docu.pdf
