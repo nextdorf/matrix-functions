@@ -15,6 +15,39 @@ class MFunc:
     The eigenvalues of the matrix
   appliedFunc : bool = False
     Specifies whether a function was already applied by contraction to the coefficients.
+
+  Example
+  -------
+  \\# One can show that sin(x) = 2cos(a)sin(x-a) - sin(x-2a). So for `x=0` and `a=.2` we can define a matrix `M`
+  such that [sin(x+na), sin(x+(n-1)a)] = matrix_power(M, n) @ [sin(x), sin(x-a)]:
+  >>> import numpy as np
+  >>> a = .2
+  >>> M = np.array([[2*np.cos(a), -1], [1,0]])
+  >>> for n in [0, 1, 10, 100, 1000, 10000]:
+  >>>   sinNa = [1,0] @ np.linalg.matrix_power(M, n) @ np.sin([0,-a])
+  >>>   error = (sinNa - np.sin(n*a))**2
+  >>>   print('n:', error)
+  >>> ...
+  n: 0.0
+  n: 0.0
+  n: 4.930380657631324e-30
+  n: 1.199857436841159e-27
+  n: 9.247078067402441e-26
+  n: 3.397767010759534e-24
+
+  \\# In order to generalize the discrete `n` to a continous variable we have to replace `matrix_power(M, n)` with
+  something like `exp(n*log(M))`. For calculating the function of a matrix we can use `MFunc`.
+  >>> krylovM = KrylovSpace(M)
+  >>> mfn = MFunc.fromKrylov(krylovM)
+  >>> mfn0 = [1,0] @ mfn @ np.sin([0,-a])
+
+  \\# Compare the numeric evaluation of sin and numpy's implementation in 1000 points between 0 and 2pi:
+  >>> ts = np.linspace(0, 2*np.pi, 1000)
+  >>> sinFromMFunc = mfn0(lambda evs: np.exp(np.outer(np.log(evs), ts/a))).coeffs
+  >>> sints = np.sin(ts)
+  >>> error = np.sum((sinFromMFunc - sints)**2)
+  >>> print(error)
+  1.1051029979680703e-26
   '''
   def __init__(self, coeffs: np.ndarray, eigvals: np.ndarray, appliedFunc: bool = False):
     self.eigvals = eigvals
@@ -22,7 +55,14 @@ class MFunc:
     self.appliedFunc = appliedFunc
 
   def __call__(self, fn: Callable, *args, **kwds):
-    '''Applies the function fn to the coefficients 
+    '''Applies the function fn to the coefficients and returns the resulting `MFunc`
+    Apply like `coeffs_(...k)f(ev_k) = T_(...ij)f(A)_ij`
+
+    fn : array-like -> array-like
+      Should evaluate the eigenvalues such that ev_k is mapped to f(ev_k)_(k...).
+
+    args, kwds
+      Additional arguments are passed to fn.
     '''
     if self.appliedFunc:
       return None
@@ -32,6 +72,7 @@ class MFunc:
 
   @staticmethod
   def fromKrylov(space: KrylovSpace):
+    'Constructs `MFunc` from a `KrylovSpace` object'
     return MFunc(space.funcCoeffs.copy(), space.eigvals)
 
   def __matmul__coeffs(self, other):

@@ -16,3 +16,4 @@ arr = mfn0(lambda t: np.exp(np.outer(np.log(t), ts/unit))).coeffs
 import matplotlib.pyplot as plt
 plt.plot(ts, arr)
 
+
