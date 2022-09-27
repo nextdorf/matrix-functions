@@ -1,4 +1,7 @@
-\documentclass{article}
+%\documentclass{article}
+\documentclass[12pt]{article}
+
+\usepackage[a4paper, total={185mm, 265mm}]{geometry} %A4: 210px * 297px
 
 \usepackage[utf8]{inputenc} % Required for inputting international characters
 \usepackage{babel}
@@ -40,7 +43,7 @@
 
 
 
-\centerline{\sc \large Documentation for the Matrix Functions package}
+\centerline{\sc \large Documentation for Matrixfuncs}
 \vspace{.5pc}
 \vspace{2pc}
 
@@ -48,49 +51,56 @@
 
 \section{Mathematical background}
 \subsection{2 dimensional case}
-Cayley-Hamilton: $A\in \mathbb C^{n\times n}:\ p_A(A)=0$
+The Cayley-Hamilton theorem states for $A\in \mathbb C^{n\times n}:\ p_A(A)=0$\\
 For $n=2$:
 \begin{align}
-p_A(\lambda) =& \det(\lambda\mathbbm 1 - A) \nonumber\\
-=& (\lambda - \lambda_1)(\lambda - \lambda_2) \nonumber\\
-=& \lambda^2 -\lambda\tr A + \det A\\
-\Rightarrow A^2 =& A \tr A - \mathbbm 1 \det A\\
-\Rightarrow A^n =& a_n A + b_n\mathbbm 1\\
-\Rightarrow A^{n+1} =& a_n A^2 + b_n A \nonumber\\
-=& a_n \big( A\tr A - \mathbbm 1\det A \big) + b_n A \nonumber\\
-=& \big(a_n\tr A + b_n\big)A - \big(a_n\det A \big)\mathbbm 1 \nonumber
+p_A(\lambda) =& \det(\lambda\mathbbm 1 - A) = (\lambda - \lambda_1)(\lambda - \lambda_2) = \lambda^2 -\lambda\tr A + \det A\\
+\Rightarrow A^2 =& A \tr A - \mathbbm 1 \det A
+\end{align}
+So $A^2$ is a linear combination of $A$ and $\mathbbm 1$. By complete induction it follows that $A^n$ is also such a linear combination of $A$ and $\mathbbm 1$ for any $n \in \mathbbm N_0$:
+\begin{align}
+A^n \eqqcolon a_n A + b_n\mathbbm 1,\ \ \ A^{n+1} = \big(a_n\tr A + b_n\big)A - \big(a_n\det A \big)\mathbbm 1
 \end{align}
 \begin{align}
-a_{n+1} =& a_n\tr A + b_n,\ b_{n+1} = -a_n\det A,\ a_0=0,\ a_1=1,\ b_0=1,\ b_1=0 \label{recurrent 2dim}\\
-\Rightarrow a_{n+2} =& a_{n+1}\tr A - a_n\det A \nonumber\\
-\Rightarrow 0 =& \big(\Delta^2 - \Delta\tr A + \det A\big) a_n\ \ \ \ \text{with}\ \Delta a_n \coloneqq a_{n+1} \nonumber\\
-=& p_A(\Delta) a_n\nonumber\\
-=& (\Delta-\lambda_1)(\Delta-\lambda_2) a_n
+a_{n+1} = a_n\tr A + b_n,\ b_{n+1} = -a_n\det A,\ a_0=0,\ a_1=1,\ b_0=1,\ b_1=0 \label{recurrent 2dim}
 \end{align}
-For a general ansatz we choose $a_n$ as a linear combination of the solutions of $0=(\Delta-\lambda_1)a_n$ and $0=(\Delta-\lambda_2)a_n$:
+In order to solve the recurrence equation we use a shifting operator $\Delta$ for $a_n$, s.t. $a_{n+1} = \Delta a_n$
 \begin{align}
-a_n =& b_1 \lambda_1^n + b_2\lambda_2^n
+0 = \big(\Delta^2 - \Delta\tr A + \det A\big) a_n = p_A(\Delta) a_n = (\Delta-\lambda_1)(\Delta-\lambda_2) a_n
 \end{align}
+As ansatz we choose $a_n$ as a linear combination of the solutions of $0=(\Delta-\lambda_1)a_n$ and $0=(\Delta-\lambda_2)a_n$. In general this ansatz only works if $\lambda_1 \neq \lambda_2$. We will consider the case $\lambda_1 = \lambda_2$ again in the end of this section and in section $\ref{ch:math.general case}$:
 \begin{align}
-&\Rightarrow a_0 = b_1 + b_2 = 0,\ a_1 = b_1\lambda_1 + b_2\lambda_2 = 1 \nonumber\\
-&\Rightarrow b_2 = -b_1,\ b_1(\lambda_1 - \lambda_2) = 1 \nonumber\\
-&\Rightarrow b_1 = -b_2 = \frac 1 {\lambda_1 - \lambda_2}
+a_n =& c_1 \lambda_1^n + c_2\lambda_2^n
 \end{align}
+As induction start we can simply consider the trivial cases $n=0$ and $n=1$:
+\begin{align}
+a_0 =& c_1 + c_2 = 0,\ a_1 = c_1\lambda_1 + c_2\lambda_2 = 1 \nonumber\\
+\Rightarrow c_2 =& -c_1,\ c_1(\lambda_1 - \lambda_2) = 1 \nonumber\\
+\Rightarrow c_1 =& -c_2 = \frac 1 {\lambda_1 - \lambda_2}
+\end{align}
+We found the solutions for $a_n$:
 \begin{align}
 a_n = \frac {\lambda_1^n - \lambda_2^n}{\lambda_1 - \lambda_2},\ b_n \overset{\eqref{recurrent 2dim}}=-\frac {\lambda_2\lambda_1^n - \lambda_1\lambda_2^n}{\lambda_1 - \lambda_2}
 \end{align}
+and thereby the linear combination of $A^n$:
 \begin{align}
 A^n =& \frac {\lambda_1^n - \lambda_2^n}{\lambda_1 - \lambda_2} A - \frac {\lambda_2\lambda_1^n - \lambda_1\lambda_2^n}{\lambda_1 - \lambda_2} \mathbbm 1
 \end{align}
-Let $q(x)$ be a polynomial:
+Since $A^n$ is linear in $\lambda_i^n$ we know how to evaluate arbitrary polynomials of $A$ in the krylov space. Let $q(x)$ be a polynomial:
 \begin{align}
 q(A) =& \frac 1{\lambda_1 - \lambda_2} \left[(q(\lambda_1) - q(\lambda_2))A - (\lambda_2 q(\lambda_1) - \lambda_1 q(\lambda_2)) \mathbbm 1\right]
 \end{align}
-Let $f(x)$ be a analytical in the eigenvalues of $A$:
+Since the coefficients only depend on $p(\lambda_i)$ the formula can be generalized to all functions which are analytical in $\lambda_1$ and $\lambda_2$. Let $f(x)$ be a analytical in the eigenvalues of $A$:
 \begin{align}
 f(A) =& \frac 1{\lambda_1 - \lambda_2} \left[(f(\lambda_1) - f(\lambda_2))A - (\lambda_2 f(\lambda_1) - \lambda_1 f(\lambda_2)) \mathbbm 1\right] \label{func 2dim}
 \end{align}
-
+The generalization of $\eqref{func 2dim}$ is the core of this package. The important properties are that it yields the result to arbitrary precision in constant time and that the application of $f$ commutes with any linear function applied to the krylov space. With other words this means there exists a rank-3 tensor $F$, which only depends on $A$, s.t. $f(A)_{ij} = F_{ijk} f(\lambda_k)$.\\
+Since $f(A)$ is continuous in the eigenvalues and the set of square matrices with unequal eigenvalues is dense in the set of all square matrices, we can just consider the limit of $\lambda_1 \to \lambda_2$ to calculate the case $\lambda_1 = \lambda_2$:
+\begin{align*}
+f(A|\lambda_1&=\lambda+\epsilon,\; \lambda_2 = \lambda) = \frac 1\epsilon \left[ \epsilon f'(\lambda) A - \epsilon(\lambda f'(\lambda) - f(\lambda))\mathbbm 1 \right] + o(\epsilon) \nonumber\\
+=& f'(\lambda)\big( A-\lambda \mathbbm 1 \big) + f(\lambda)\mathbbm 1
+\end{align*}
+So when $A$ is not diagonalizable $f(A)$ depends on $f'(\lambda)$. In general we will find that $f(A)$ depends on $f(\lambda_i), f'(\lambda_i), \dots, f^{(m)}(\lambda_i)$ where $m$ is the difference of the algebraic and geometric multiplicity of $\lambda_i$.
 \subsection{Example for 2 dimensions}
 \begin{align}
 \sin(x+a) = \sin(x)\cos(a) + \cos(x)\sin(a) \label{sin(a+b)}
@@ -138,7 +148,7 @@ f(\lambda_{1,2}) =& e^{\pm \i y}
 =& \sin y \cos x + \cos y \sin x\ \ \ \text{Q.E.D.}
 \end{align}
 
-\subsection{General case}
+\subsection{General case}\label{ch:math.general case}
 Cayley-Hamilton: $A \in \mathbb C^{n\times n}:\ p_A(A) = 0$
 \begin{align}
 p_A(\lambda) =& \det(\lambda\mathbbm 1 - A) = \prod_{k=1}^n(\lambda - \lambda_k) = \lambda^n - \sum_{k=0}^{n-1} \Lambda_k \lambda^k\nonumber\\
