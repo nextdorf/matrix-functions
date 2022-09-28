@@ -96,58 +96,49 @@ f(A) =& \frac 1{\lambda_1 - \lambda_2} \left[(f(\lambda_1) - f(\lambda_2))A - (\
 \end{align}
 The generalization of $\eqref{func 2dim}$ is the core of this package. The important properties are that it yields the result to arbitrary precision in constant time and that the application of $f$ commutes with any linear function applied to the krylov space. With other words this means there exists a rank-3 tensor $F$, which only depends on $A$, s.t. $f(A)_{ij} = F_{ijk} f(\lambda_k)$.\\
 Since $f(A)$ is continuous in the eigenvalues and the set of square matrices with unequal eigenvalues is dense in the set of all square matrices, we can just consider the limit of $\lambda_1 \to \lambda_2$ to calculate the case $\lambda_1 = \lambda_2$:
-\begin{align*}
+\begin{align}
 f(A|\lambda_1&=\lambda+\epsilon,\; \lambda_2 = \lambda) = \frac 1\epsilon \left[ \epsilon f'(\lambda) A - \epsilon(\lambda f'(\lambda) - f(\lambda))\mathbbm 1 \right] + o(\epsilon) \nonumber\\
-=& f'(\lambda)\big( A-\lambda \mathbbm 1 \big) + f(\lambda)\mathbbm 1
-\end{align*}
+\overset{\epsilon\to 0}{\longrightarrow}& f'(\lambda)\big( A-\lambda \mathbbm 1 \big) + f(\lambda)\mathbbm 1\nonumber\\
+\Rightarrow f(A) =& f'(\lambda)\big( A-\lambda \mathbbm 1 \big) + f(\lambda)\mathbbm 1\ \ \text{if $\lambda$ is the only eigenvalue of $A$}  \label{func 2dim 1eigval}
+\end{align}
 So when $A$ is not diagonalizable $f(A)$ depends on $f'(\lambda)$. In general we will find that $f(A)$ depends on $f(\lambda_i), f'(\lambda_i), \dots, f^{(m)}(\lambda_i)$ where $m$ is the difference of the algebraic and geometric multiplicity of $\lambda_i$.
 \subsection{Example for 2 dimensions}
+There are many applications and possible use cases for matrix functions, but the main application this package is written for are difference equations. Assuming you want to consider a sequence of vectors $(v_i)_{i=0}^\infty \subset \mathbbm K^n$ which satisfies $v_{i+1} = M v_i$ for some matrix $M\in \mathbbm K^{n\times n}$. An obvious conclusion is $v_k = M^k v_0$. With $\eqref{func 2dim}$ or $\eqref{func 2dim 1eigval}$ we can express $M^k$ without any matrix multiplications. Instead with just apply $f(\lambda) = \lambda^k$ to all eigenvalues. We even can apply $v_0$ or any other tensor contraction to $f(M)$ before we specify $k$. Calculating this things beforehand can speedup the total calculation if we need to calculate $v_k$ for many different $k$.\\
+Another neat application is the analytical continuation of $v_k$ in $k$ by setting $f(\lambda) = e^{k \ln(\lambda)}$. We will use this in the example here by solving a difference equation for a sampled $\sin$ function and then evaluating the numerically solved $\sin$ between the sampled points.\\
+Consider the sum identity of $\sin$:
 \begin{align}
 \sin(x+a) = \sin(x)\cos(a) + \cos(x)\sin(a) \label{sin(a+b)}
 \end{align}
+For fixed $a$ $\sin(x+a)$ can be expressed as a linear combination of the basis $\sin x$ and $\cos b$. Therefore $\sin x$ can be written as a linear combination of $\sin(x+a)$ and $\sin(x+2a)$ for almost all $a$:
 \begin{align}
 \sin(x) \eqqcolon& \alpha\sin(x+a) + \beta\sin(x+2a) \nonumber\\
 =& \alpha\big(\sin(x)\cos(a) + \sin(a)\cos(x)\big) + \beta\big(\sin(x)\cos(2a) + \sin(2a)\cos(x)\big) \nonumber\\
 =& \sin x\big( \alpha\cos a + \beta\cos(2a) \big) + \cos x\big( \alpha\sin a + \beta\sin(2a) \big) \\
-\begin{pmatrix} 1 \\ 0 \end{pmatrix} =& \begin{pmatrix} \cos a & \cos(2a) \\ \sin a & \sin(2a) \end{pmatrix} \begin{pmatrix} \alpha \\ \beta \end{pmatrix}\\
+\Rightarrow \begin{pmatrix} 1 \\ 0 \end{pmatrix} =& \begin{pmatrix} \cos a & \cos(2a) \\ \sin a & \sin(2a) \end{pmatrix} \begin{pmatrix} \alpha \\ \beta \end{pmatrix}\\
 \begin{pmatrix} \alpha \\ \beta \end{pmatrix} =& \begin{pmatrix} \cos a & \cos(2a) \\ \sin a & \sin(2a) \end{pmatrix}^{-1} \begin{pmatrix} 1 \\ 0 \end{pmatrix} \nonumber\\
 =& \frac 1{\cos a\sin(2a) - \sin a\cos(2a)} \begin{pmatrix} \sin(2a) & -\cos(2a) \\ -\sin a & \cos a \end{pmatrix} \begin{pmatrix} 1 \\ 0 \end{pmatrix} \nonumber\\
-=& \frac 1{\cos a\sin(2a) - \sin a\cos(2a)} \begin{pmatrix} \sin(2a) \\ -\sin a \end{pmatrix} \nonumber\\
-=& \frac 1{\cos a(2\sin a \cos a) - \sin a(\cos^2 a - \sin^2 a)}  \begin{pmatrix} \sin(2a) \\ -\sin a \end{pmatrix} \nonumber\\
-=& \frac 1{\cos a(2\sin a \cos a) - \sin a(\cos^2 a - \sin^2 a)}  \begin{pmatrix} \sin(2a) \\ -\sin a \end{pmatrix} \nonumber\\
-=& \frac 1{\sin a(\sin^2 a + \cos^2 a)} \begin{pmatrix} \sin(2a) \\ -\sin a \end{pmatrix} \nonumber\\
-=& \begin{pmatrix} \sin(2a)/\sin(a) \\ -1 \end{pmatrix} \nonumber
+=& \frac 1{\sin a} \begin{pmatrix} \sin(2a) \\ -\sin a \end{pmatrix} \nonumber\\
+\overset{\eqref{sin(a+b)}}=& \begin{pmatrix} 2\cos(a) \\ -1 \end{pmatrix} \nonumber
 \end{align}
+From this we can construct a difference equation which shifts $\sin$ by $a$. 
 \begin{align}
-\Rightarrow& \alpha = \frac{\sin(2a)}{\sin a} \overset{\eqref{sin(a+b)}}= 2\cos a,\ \beta = -1\\
-\end{align}
-\begin{align}
-\Rightarrow \sin(x) =& 2\cos(a) \sin(x-a) - \sin(x-2a)\\
-\begin{pmatrix} \sin x \\ \sin(x - a) \end{pmatrix} =& \underbrace{\begin{pmatrix} 2\cos a & -1 \\ 1 & 0 \end{pmatrix}}_{\eqqcolon M(a)} \begin{pmatrix} \sin (x-a) \\ \sin(x-2a) \end{pmatrix}\\
+\begin{pmatrix} \sin x \\ \sin(x - a) \end{pmatrix} =& \underbrace{\begin{pmatrix} 2\cos a & -1 \\ 1 & 0 \end{pmatrix}}_{\eqqcolon M(a)} \begin{pmatrix} \sin (x-a) \\ \sin(x-2a) \end{pmatrix} \nonumber\\
 \Rightarrow \begin{pmatrix} \sin (x+na) \\ \sin(x+(n-1)a) \end{pmatrix} =& M(a)^n \begin{pmatrix} \sin x \\ \sin(x-a) \end{pmatrix}\\
 \Rightarrow \sin(x+na) =& \hat e_1 \cdot M(a)^n \begin{pmatrix} \sin x \\ \sin(x-a) \end{pmatrix}\\
 \Rightarrow \sin(x+y) =& \hat e_1 \cdot e^{\frac ya \ln(M(a))} \begin{pmatrix} \sin x \\ \sin(x-a) \end{pmatrix}
 \end{align}
 We can now use the formula for two dimensions $\eqref{func 2dim}$ in order to solve for $\sin(x+y)$:
 \begin{align}
-\sin(x+y) \overset{\eqref{func 2dim}}=& \hat e_1 \cdot \frac 1{\lambda_1 - \lambda_2} \left[(f(\lambda_1) - f(\lambda_2))M(a) - (\lambda_2 f(\lambda_1) - \lambda_1 f(\lambda_2)) \mathbbm 1\right] \begin{pmatrix} \sin x \\ \sin(x-a) \end{pmatrix} \nonumber\\
-&\ \ \text{with}\ f(\lambda) = e^{\frac ya \ln\lambda}
+\sin(x+y) \overset{\eqref{func 2dim}}=& \hat e_1 \cdot \frac 1{\lambda_1 - \lambda_2} \left[(f(\lambda_1) - f(\lambda_2))M(a) - (\lambda_2 f(\lambda_1) - \lambda_1 f(\lambda_2)) \mathbbm 1\right] \begin{pmatrix} \sin x \\ \sin(x-a) \end{pmatrix} \label{sin(x+y) numerical}
 \end{align}
-\begin{align}
+\begin{align*}
+\text{with}\ f(\lambda) =& e^{\frac ya \ln\lambda}\\
 \lambda_{1,2} =& \frac 12\tr M(a) \pm \sqrt{\big(\frac 12\tr (M(a))\big)^2 - \det(M(a))}\nonumber\\
 =& \cos a \pm \sqrt{\cos^2 a - 1}\nonumber\\
 =& e^{\pm \i a}\\
 f(\lambda_{1,2}) =& e^{\pm \i y}
-\end{align}
-\begin{align}
-\sin(x+y) =& \hat e_1 \cdot \frac 1{2\i \sin a} \left[2\i \sin(y) M(a) - 2\i \sin(y - a) \mathbbm 1\right] \begin{pmatrix} \sin x \\ \sin(x-a) \end{pmatrix} \nonumber\\
-=& \hat e_1 \cdot \frac 1{2\i \sin a} \left[2\i \sin(y)  \begin{pmatrix} \sin(x+a) \\ \sin x \end{pmatrix} - 2\i \sin(y - a) \begin{pmatrix} \sin x \\ \sin(x-a) \end{pmatrix} \right] \nonumber\\
-=& \frac 1{2\i \sin a} \left[2\i \sin y \sin(x+a) - 2\i \sin(y - a) \sin x \right] \nonumber\\
-=& \frac 1{2\i \sin a} \left[2\i \sin y (\sin x \cos a + \cos x \sin a) - 2\i (\sin y \cos a - \cos y \sin a) \sin x \right] \nonumber\\
-=& \frac 1{2\i \sin a} \left[2\i \sin y \cos x \sin a + 2\i \cos y \sin a \sin x \right] \nonumber\\
-=& \sin y \cos x + \cos y \sin x\ \ \ \text{Q.E.D.}
-\end{align}
-
+\end{align*}
+Simplifying $\eqref{sin(x+y) numerical}$ will yield $\eqref{sin(a+b)}$.
 \subsection{General case}\label{ch:math.general case}
 Cayley-Hamilton: $A \in \mathbb C^{n\times n}:\ p_A(A) = 0$
 \begin{align}
