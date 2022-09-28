@@ -102,7 +102,7 @@ f(A|\lambda_1&=\lambda+\epsilon,\; \lambda_2 = \lambda) = \frac 1\epsilon \left[
 \Rightarrow f(A) =& f'(\lambda)\big( A-\lambda \mathbbm 1 \big) + f(\lambda)\mathbbm 1\ \ \text{if $\lambda$ is the only eigenvalue of $A$}  \label{func 2dim 1eigval}
 \end{align}
 So when $A$ is not diagonalizable $f(A)$ depends on $f'(\lambda)$. In general we will find that $f(A)$ depends on $f(\lambda_i), f'(\lambda_i), \dots, f^{(m)}(\lambda_i)$ where $m$ is the difference of the algebraic and geometric multiplicity of $\lambda_i$.
-\subsection{Example for 2 dimensions}
+\subsection{Example for 2 dimensions: $\sin x$}
 There are many applications and possible use cases for matrix functions, but the main application this package is written for are difference equations. Assuming you want to consider a sequence of vectors $(v_i)_{i=0}^\infty \subset \mathbbm K^n$ which satisfies $v_{i+1} = M v_i$ for some matrix $M\in \mathbbm K^{n\times n}$. An obvious conclusion is $v_k = M^k v_0$. With $\eqref{func 2dim}$ or $\eqref{func 2dim 1eigval}$ we can express $M^k$ without any matrix multiplications. Instead with just apply $f(\lambda) = \lambda^k$ to all eigenvalues. We even can apply $v_0$ or any other tensor contraction to $f(M)$ before we specify $k$. Calculating this things beforehand can speedup the total calculation if we need to calculate $v_k$ for many different $k$.\\
 Another neat application is the analytical continuation of $v_k$ in $k$ by setting $f(\lambda) = e^{k \ln(\lambda)}$. We will use this in the example here by solving a difference equation for a sampled $\sin$ function and then evaluating the numerically solved $\sin$ between the sampled points.\\
 Consider the sum identity of $\sin$:
@@ -140,27 +140,44 @@ f(\lambda_{1,2}) =& e^{\pm \i y}
 \end{align*}
 Simplifying $\eqref{sin(x+y) numerical}$ will yield $\eqref{sin(a+b)}$.
 \subsection{General case}\label{ch:math.general case}
-Cayley-Hamilton: $A \in \mathbb C^{n\times n}:\ p_A(A) = 0$
+Similarly to the 2d-case we use the Cayley-Hamilton-theorem: $A \in \mathbb C^{n\times n},\ p_A(A) = 0$
 \begin{align}
-p_A(\lambda) =& \det(\lambda\mathbbm 1 - A) = \prod_{k=1}^n(\lambda - \lambda_k) = \lambda^n - \sum_{k=0}^{n-1} \Lambda_k \lambda^k\nonumber\\
+p_A(\lambda) =& \det(\lambda\mathbbm 1 - A) = \prod_{k=1}^n(\lambda - \lambda_k) \eqqcolon \lambda^n - \sum_{k=0}^{n-1} \Lambda_k \lambda^k\nonumber\\
 \Rightarrow \Lambda_k =& \sum_{\substack{j_1,\dots,j_{n-k} = 1,\\ j_1<\dots<j_{n-k}}}^n (-1)^{n-k+1} \prod_{i=1}^{n-k} \lambda_{j_i} \\
 A^n =& \sum_{k=0}^{n-1} \Lambda_k A^k\nonumber\\
 A^m \eqqcolon& \sum_{k=0}^{n-1} \alpha_{mk} A^k\\
-A^{m+1} =& \sum_{k=0}^{n-2} \alpha_{mk} A^{k+1} + \alpha_{m,n-1} A^n \nonumber\\
-=& \sum_{k=1}^{n-1} (\alpha_{m,k-1} + \alpha_{m,n-1}\Lambda_k) A^k + \alpha_{m,n-1}\Lambda_0 A^0 \nonumber\\
+A^{m+1} =& \sum_{k=1}^{n-1} (\alpha_{m,k-1} + \alpha_{m,n-1}\Lambda_k) A^k + \alpha_{m,n-1}\Lambda_0 A^0 \nonumber\\
+\Rightarrow \alpha_{m+1,0} =& \alpha_{m,n-1} \Lambda_0,\ \alpha_{m+1,k} = \alpha_{m,k-1} + \alpha_{m,n-1}\Lambda_k \label{recurrent ndim}
 \end{align}
-\begin{align}
-\alpha_{m+1,0} = \alpha_{m,n-1} \Lambda_0,\ \alpha_{m+1,k} = \alpha_{m,k-1} + \alpha_{m,n-1}\Lambda_k \label{recurrent ndim}
-\end{align}
+The recurrence equation $\eqref{recurrent ndim}$ can be solved by noticing that all $\alpha_{m,n-1}$ can be reduced to a function of $\alpha_{m-1,n-1},\; \alpha_{m-2,n-1}\; \dots$
 \begin{align}
 \alpha_{m,n-1} =& \sum_{k=1}^{n-1} \alpha_{m-k,n-1}\Lambda_{n-k} + \alpha_{m+1-n,0} \nonumber\\
 =& \sum_{k=1}^n \alpha_{m-k,n-1}\Lambda_{n-k} \nonumber\\
-=& \sum_{k=0}^{n-1} \alpha_{m+k-n,n-1}\Lambda_k\\
+=& \sum_{k=0}^{n-1} \alpha_{m+k-n,n-1}\Lambda_k \nonumber\\
 \Rightarrow 0=& \alpha_{m+n,n-1} - \sum_{k=0}^{n-1} \alpha_{m+k,n-1}\Lambda_k \nonumber\\
 =& \big( \Delta^n - \sum_{k=0}^{n-1} \Delta^k \Lambda_k \big) \alpha_{m, n-1} \ \ \ \text{with}\ \Delta \alpha_{mk} = \alpha_{m+1,k}\nonumber\\
-=& p_A(\Delta) \alpha_{m, n-1}
+=& p_A(\Delta) \alpha_{m, n-1}\nonumber\\
+=& \prod_{k=1}^r\big( \Delta - \lambda_k \big)^{\mu_k}\ \alpha_{m, n-1}\\
+&\ \ \text{with $\mu_k$ being the algebraic multiplicity of $\lambda_k$}\nonumber
 \end{align}
-General ansatz, similiar to the two dimensional case:
+The general solution is $\alpha_{m, n-1} = \sum_{k=1}^r \lambda_k^m \sum_{l=0}^{\mu_k-1} \bar a_l m^l$. Proof:
+\begin{align*}
+\text{Induction start: } 0 = \big( \Delta - \lambda \big) c_n\ \Rightarrow\ c_n = \lambda c_{n-1} = \lambda^n c_0
+\end{align*}
+\begin{align*}
+\text{Assume } 0 =& \big( \Delta - \lambda \big)^m \lambda^n \sum_{k=0}^{m-1} c_k n^k \ \forall c_0, \dots, c_{m-1}\\
+\Rightarrow \big( \Delta - \lambda \big)^{m+1} &\lambda^n \sum_{k=0}^m c_k n^k = \big( \Delta - \lambda \big)^m \big( \Delta - \lambda \big) \lambda^n c_m n^m + \big( \Delta - \lambda \big) \big( \Delta - \lambda \big)^m \lambda^n \sum_{k=0}^{m-1} c_k n^k\\
+=& \big( \Delta - \lambda \big)^m \big( (n+1)^m - n^m \big) \lambda^{n+1} c_m \\
+=& \big( \Delta - \lambda \big)^m \lambda^n \sum_{k=0}^{m-1} \binom mk \lambda c_m n^k\\
+=& 0\\
+\Rightarrow 0 =& \big( \Delta - \lambda \big)^m \lambda^n \sum_{k=0}^{m'} c_k n^k \ \forall c_0, \dots, c_{m'-1},\; m>m'
+\end{align*}
+\begin{align*}
+\text{Now consider } \bar c_n = \big(\Delta - \lambda\big) c_n\ \Rightarrow\ c_{n+1} = \bar c_n + \lambda c_n = \sum_{k=0}^n \lambda^k \bar c_{n-k} + \lambda^{n+1} c_0
+\end{align*}
+Since the solution of $c_n$ is linear in $\bar c_n$ we can consider the dimension of the solution space if $\bar c_n$ is itself a solution of a similar equation. The solution space of $0 = \big(\Delta - \lambda_1\big) c_n^{(1)}$ is 1-dimensional. Therefore the solution space of $c_n^{(m)} = \big(\Delta - \lambda_1\big) c_n^{(m+1)}$ is either of the same dimension as the solution space of $c_n^{(m)}$ or the dimension increases by 1. So the dimension of the solution space of $p_A(\Delta) \alpha_{m, n-1}$ is at most $n$. Since $\sum_{k=1}^r \lambda_k^m \sum_{l=0}^{\mu_k-1} \bar a_l m^l$ is a $n$-dimensional solution it is the general solution.\\ \null\hfill$\Box$
+%The general solution is $\$
+%General ansatz, similiar to the two dimensional case:
 \begin{align}
 \alpha_{m,n-1} = \sum_{k=1}^n \beta_k \lambda_k^m
 \end{align}
