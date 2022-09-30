@@ -8,7 +8,7 @@ $$
 It turns out that $\alpha_{mk}$ only depends on the eigenvalues $\lambda_1,\ \dots,\ \lambda_n$. Because of this every matrix function can be expressed in the krylov space if the function is analytical in the eigenvalues:
 
 $$
-A^m = \sum_{k=0}^{n-1} A^k \sum_{j=1}^{k+1} \Lambda_{k+1-j} \sum_{l=1}^r \sum_{p=0}^{\min(\mu_l-1,m)} \bar\beta_{lp} \lambda_l^{m-j-p} \frac{(m-j)!}{(m-j-p)!}
+A^m = \sum_{k=0}^{n-1} A^k \sum_{j=1}^{k+1} \Lambda_{k+1-j} \sum_{l=1}^r \sum_{p=0}^{\min(\mu_l-1,m-j)} \bar\beta_{lp} \lambda_l^{m-j-p} \frac{(m-j)!}{(m-j-p)!}
 $$
 
 $$
