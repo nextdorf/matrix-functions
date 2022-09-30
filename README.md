@@ -10,6 +10,7 @@ It turns out that $\alpha_{mk}$ only depends on the eigenvalues $\lambda_1,\ \do
 $$
 A^m = \sum_{k=0}^{n-1} A^k \sum_{j=1}^{k+1} \Lambda_{k+1-j} \sum_{l=1}^r \sum_{p=0}^{\min(\mu_l-1,m)} \bar\beta_{lp} \lambda_l^{m-j-p} \frac{(m-j)!}{(m-j-p)!}
 $$
+
 $$
 f(A) = \sum_{k=0}^{n-1} A^k \sum_{j=1}^{k+1} \Lambda_{k+1-j} \sum_{l=1}^r \sum_{p=0}^{\mu_l-1} \bar\beta_{lp} \sum_{q=0}^p \binom pq (-1)^{p-q}\frac{(j-1+p-q)!}{(j-1)!} \lambda_l^{-j-p+q} f^{(q)}(\lambda_l)
 $$
