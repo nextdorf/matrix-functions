@@ -20,6 +20,7 @@
 \usepackage{float}
 \usepackage{shellesc}
 \usepackage{svg}
+\usepackage{comment}
 \usepackage[linkcolor=blue, colorlinks=true]{hyperref}
 
 \usepackage[backend=bibtex,style=authoryear,natbib=true]{biblatex} % Use the bibtex backend with the authoryear citation style (which resembles APA)
@@ -160,7 +161,7 @@ The recurrence equation $\eqref{recurrent ndim}$ can be solved by noticing that 
 =& \prod_{k=1}^r\big( \Delta - \lambda_k \big)^{\mu_k}\ \alpha_{m, n-1}\\
 &\ \ \text{with $\mu_k$ being the algebraic multiplicity of $\lambda_k$}\nonumber
 \end{align}
-The general solution is $\alpha_{m, n-1} = \sum_{k=1}^r \lambda_k^m \sum_{l=0}^{\mu_k-1} \bar a_l m^l$. Proof:
+The general solution is $\alpha_{m, n-1} = \sum_{k=1}^r \lambda_k^m p_k(m)$ with $p_k$ being an arbitrary polynomial of degree $\mu_k-1$. Proof:
 \begin{align*}
 \text{Induction start: } 0 = \big( \Delta - \lambda \big) c_n\ \Rightarrow\ c_n = \lambda c_{n-1} = \lambda^n c_0
 \end{align*}
@@ -175,42 +176,101 @@ The general solution is $\alpha_{m, n-1} = \sum_{k=1}^r \lambda_k^m \sum_{l=0}^{
 \begin{align*}
 \text{Now consider } \bar c_n = \big(\Delta - \lambda\big) c_n\ \Rightarrow\ c_{n+1} = \bar c_n + \lambda c_n = \sum_{k=0}^n \lambda^k \bar c_{n-k} + \lambda^{n+1} c_0
 \end{align*}
-Since the solution of $c_n$ is linear in $\bar c_n$ we can consider the dimension of the solution space if $\bar c_n$ is itself a solution of a similar equation. The solution space of $0 = \big(\Delta - \lambda_1\big) c_n^{(1)}$ is 1-dimensional. Therefore the solution space of $c_n^{(m)} = \big(\Delta - \lambda_1\big) c_n^{(m+1)}$ is either of the same dimension as the solution space of $c_n^{(m)}$ or the dimension increases by 1. So the dimension of the solution space of $p_A(\Delta) \alpha_{m, n-1}$ is at most $n$. Since $\sum_{k=1}^r \lambda_k^m \sum_{l=0}^{\mu_k-1} \bar a_l m^l$ is a $n$-dimensional solution it is the general solution.\\ \null\hfill$\Box$
-%The general solution is $\$
-%General ansatz, similiar to the two dimensional case:
+Since the solution of $c_n$ is linear in $\bar c_n$ we can consider the dimension of the solution space if $\bar c_n$ is itself a solution of a similar equation. The solution space of $0 = \big(\Delta - \lambda_1\big) c_n^{(1)}$ is 1-dimensional. Therefore the solution space of $c_n^{(m)} = \big(\Delta - \lambda_1\big) c_n^{(m+1)}$ is either of the same dimension as the solution space of $c_n^{(m)}$ or the dimension increases by 1. So the dimension of the solution space of $p_A(\Delta) \alpha_{m, n-1}$ is at most $n$. Since $\sum_{k=1}^r \lambda_k^m p_k(m)$ is a $\sum_{k=1}^r \dim(p_k) = n$ dimensional solution it is the general solution.\\
+\null\hfill$\Box$
 \begin{align}
-\alpha_{m,n-1} = \sum_{k=1}^n \beta_k \lambda_k^m
+\alpha_{m,n-1} =& \sum_{k=1}^r \sum_{l=0}^{\min(\mu_k-1,m)} \bar\beta_{kl} \lambda_k^{m-l} \frac{m!}{(m-l)!} = \sum_{k=1}^r \sum_{l=0}^{\mu_k-1} \bar\beta_{kl} \left. \del_\lambda^l \lambda^m \right|_{\lambda = \lambda_k} \eqqcolon \sum_{k=1}^n \beta_k \lambda_k^{(m)}\\
+\beta_k =& (\bar\beta_{1,0}, \dots, \bar\beta_{1,\mu_1-1},\; \bar\beta_{2,0}, \dots, \bar\beta_{2,\mu_2-1},\; \dots,\; \bar\beta_{r,0}, \dots, \bar\beta_{r,\mu_r-1})_k \nonumber\\
+\lambda_k^{(m)} =& (\lambda_1^m, \dots, \del_{\lambda_1}^{\mu_1-1} \lambda_1^m,\; \lambda_2^m, \dots, \del_{\lambda_2}^{\mu_2-1} \lambda_2^m,\; \dots,\; \lambda_r^m, \dots, \del_{\lambda_r}^{\mu_r-1} \lambda_r^m)_k \nonumber
 \end{align}
-For $m<n$:
+For $m<n:\ \alpha_{mk} = \delta_{mk}\ \Rightarrow \delta_{m,n-1} = \beta_k \lambda_k^{(m)}$
 \begin{align}
-\alpha_{mk} =& \delta_{mk}\\
-\Rightarrow \delta_{m,n-1} =& \beta_k \lambda_k^m\\
-\Rightarrow \vec \beta \perp& \sum_{k=1}^n \hat e_k \lambda_k^m \eqqcolon \vec \lambda^{(m)} \ \text{for}\ m=0\dots n-2\\
+\Rightarrow \vec \beta \perp& \sum_{k=1}^n \hat e_k \lambda_k^m \eqqcolon \vec \lambda^{(m)} \ \text{for}\ m=0\dots n-2 \nonumber\\
 \tilde\beta_k \coloneqq& \det(\hat e_k | \vec\lambda^{(n-2)} | \vec\lambda^{(n-3)} | \dots | \vec\lambda^{(0)})\nonumber\\
 \beta =& \tilde\beta /\big( \tilde \beta \cdot \lambda^{(n-1)} \big)
 \end{align}
 $\eqref{recurrent ndim}$ yields for $\alpha_{mk}$:
 \begin{align}
-\alpha_{mk} =& \sum_{j=1}^{k+1} \alpha_{m-j,n-1} \Lambda_{k+1-j} \nonumber\\
-=& \sum_{j=1}^{k+1} \vec\beta\cdot\vec\lambda^{(m-j)} \Lambda_{k+1-j} \nonumber\\
-=& \vec\beta\cdot \sum_{j=0}^k \Lambda_j \vec\lambda^{(m+j-k-1)}
+\alpha_{mk} =& \sum_{j=1}^{k+1} \alpha_{m-j,n-1} \Lambda_{k+1-j} = \sum_{j=1}^{k+1} \vec\beta\cdot\vec\lambda^{(m-j)} \Lambda_{k+1-j}
 \end{align}
 As in the two dimensional case this defines $f(A)$ if $f$ is analytical in the eigenvalues of $A$:
 \begin{align}
-A^m =& \sum_{k=0}^{n-1} A^k \sum_{j=0}^k \Lambda_j  \beta \cdot \lambda^{(m+j-k-1)}\\
-f(A) =& \sum_{k=0}^{n-1} A^k \sum_{j=0}^k \Lambda_j \sum_{i=1}^n \beta_i \lambda_i^{j-k-1} f(\lambda_i)
+A^m =& \sum_{k=0}^{n-1} A^k \sum_{j=1}^{k+1} \Lambda_{k+1-j} \sum_{l=1}^r \sum_{p=0}^{\min(\mu_l-1,m)} \bar\beta_{lp} \lambda_l^{m-j-p} \frac{(m-j)!}{(m-j-p)!}\\
+f(A) =& \sum_{k=0}^{n-1} A^k \sum_{j=1}^{k+1} \Lambda_{k+1-j} \sum_{l=1}^r \sum_{p=0}^{\mu_l-1} \bar\beta_{lp} \del_{\lambda_l}^p \lambda_l^{-j} f(\lambda_l) \nonumber\\
+=& \sum_{k=0}^{n-1} A^k \sum_{j=1}^{k+1} \Lambda_{k+1-j} \sum_{l=1}^r \sum_{p=0}^{\mu_l-1} \bar\beta_{lp} \sum_{q=0}^p \binom pq (-1)^{p-q}\frac{(j-1+p-q)!}{(j-1)!} \lambda_l^{-j-p+q} f^{(q)}(\lambda_l)
 \end{align}
-
-\subsubsection*{Sanity check}
+Since $f(A)$ is linear in $A^k$ and $f^{(q)}(\lambda_l)$ we can define the tensors $\mathcal F$ and $F$, s.t.
+\begin{align}
+f(A) = \sum_{i=0}^{n-1} \sum_{j=1}^r \sum_{k=0}^{\mu_j-1} \mathcal F_{ij}^{(k)} A^i f^{(k)}(\lambda_j),\ \ \ \ F_{ijk}^{(l)} = \sum_{m=0}^{n-1} \mathcal F_{mk}^{(l)} (A^m)_{ij}
+\end{align}
+\begin{align}
+\mathcal F_{kl}^{(q)} =& \del_{x_q} \del_{y_l} \sum_{j=1}^{k+1} \Lambda_{k+1-j} \sum_{l'=1}^r \sum_{p=0}^{\mu_{l'}-1} \bar\beta_{l'p} \sum_{q'=0}^p \binom p{q'} (-1)^{p-q'}\frac{(j-1+p-q')!}{(j-1)!} \lambda_{l'}^{-j-p+q'} x_{q'} y_{l'} \nonumber\\
+=& \sum_{j=1}^{k+1} \Lambda_{k+1-j} \sum_{p=q}^{\mu_l-1} \bar\beta_{lp} \binom pq (-1)^{p-q}\frac{(j-1+p-q)!}{(j-1)!} \lambda_l^{-j-p+q}
+\end{align}
+\subsubsection*{Sanity check for $n=2$}
+\begin{itemize}
+\item $\lambda_1 \neq \lambda_2\ \Rightarrow\ \mu_1 = \mu_2 = 1,\; r=2:$
 \begin{align*}
-\Lambda_0 =& -\det(A),\ \Lambda_1 = \tr A,\ \beta = \frac 1 {\lambda_1 - \lambda_2}\begin{pmatrix} 1 \\ -1 \end{pmatrix}\\
-f(A) =& \mathbbm 1 \Lambda_0 \frac 1{\lambda_1 - \lambda_2} \big(f(\lambda_1)/\lambda_1 - f(\lambda_2)/\lambda_2 \big)\\
-&+ A \Lambda_0 \frac 1{\lambda_1 - \lambda_2} \big(f(\lambda_1)/\lambda_1^2 - f(\lambda_2)/\lambda_2^2 \big)\\
-&+ A \Lambda_1 \frac 1{\lambda_1 - \lambda_2} \big(f(\lambda_1)/\lambda_1 - f(\lambda_2)/\lambda_2 \big)\\
-=& \frac 1{\lambda_1-\lambda_2}\big[ \lambda_1f(\lambda_2) - \lambda_2f(\lambda_1) \big] \mathbbm 1 \\
-&+ \frac 1{\lambda_1-\lambda_2}\big[ (\frac{\lambda_1}{\lambda_2} - \frac{\lambda_1+\lambda_2}{\lambda_2}) f(\lambda_2) - (\frac{\lambda_2}{\lambda_1} - \frac{\lambda_1+\lambda_2}{\lambda_1}) f(\lambda_1) \big] A\\
-=& \frac 1{\lambda_1-\lambda_2}\big[ \big( \lambda_1f(\lambda_2) - \lambda_2f(\lambda_1) \big) \mathbbm 1 + \big(f(\lambda_1) - f(\lambda_2)\big) A\big] 
+\lambda_k^{(m)} =& \lambda_k^m,\ \beta_{\cdot\;0} = \frac 1{\lambda_1 - \lambda_2} \begin{pmatrix} 1\\-1 \end{pmatrix},\ \Lambda_0 = -\lambda_1\lambda_2,\ \Lambda_1 = \lambda_1 + \lambda_2\\
+\mathcal F^{(0)} =& \begin{pmatrix} \Lambda_0\bar\beta_{10}/\lambda_1 & \Lambda_0\bar\beta_{20}/\lambda_2 \\ \Lambda_0\bar\beta_{10}/\lambda_1^2 + \Lambda_1\bar\beta_{10}/\lambda_1 & \Lambda_0\bar\beta_{20}/\lambda_2^2 + \Lambda_1\bar\beta_{20}/\lambda_2 \end{pmatrix} = \frac 1{\lambda_1 - \lambda_2} \begin{pmatrix} -\lambda_2 & \lambda_1 \\ 1 & -1 \end{pmatrix}\\
+\Rightarrow f(A) =& \frac 1 {\lambda_1-\lambda_2}\big[ \big(f(\lambda_1) - f(\lambda_2)\big) A - \big(\lambda_2 f(\lambda_1) - \lambda_1 f(\lambda_2)\big) \mathbbm 1 \big]\ \checkmark
 \end{align*}
+\item $\lambda_1 = \lambda_2 = \lambda\ \Rightarrow\ \mu_1 = 2,\; r=1:$
+\begin{align*}
+\lambda_k^{(m)} =& \big(\lambda^m, m\lambda^{m-1}\big)_k,\ \beta_{1\;\cdot} = \begin{pmatrix} 0\\1 \end{pmatrix},\ \Lambda_0 = -\lambda^2,\ \Lambda_1 = 2\lambda\\
+\mathcal F^{(0)} =& \begin{pmatrix} \Lambda_0 (\bar\beta_{10}/\lambda - \bar\beta_{11}/\lambda^2) \\ \Lambda_1 (\bar\beta_{10}/\lambda - \bar\beta_{11}/\lambda^2) + \Lambda_0 (\bar\beta_{10}/\lambda^2 - 2\bar\beta_{11}/\lambda^3) \end{pmatrix} = \begin{pmatrix} 1 \\ 0 \end{pmatrix}\\
+\mathcal F^{(1)} =& \begin{pmatrix} \Lambda_0 \bar\beta_{11}/\lambda \\ \Lambda_1 \bar\beta_{11}/\lambda + \Lambda_0 \bar\beta_{11}/\lambda^2 \end{pmatrix} = \begin{pmatrix} -\lambda \\ 1 \end{pmatrix}\\
+\Rightarrow f(A) =& f(\lambda)\mathbbm 1 + f'(\lambda)\big( A - \lambda\mathbbm 1 \big)\ \checkmark
+\end{align*}
+\end{itemize}
+
+\begin{comment}
+\begin{align}
+\alpha_{m,n-1} =& \sum_{k=1}^r \lambda_k^m \sum_{l=0}^{\mu_k-1} \bar\beta_{kl} \frac{(m+l)!}{m!} = \sum_{k=1}^r \sum_{l=0}^{\mu_k-1} \bar\beta_{kl} \left. \del_\lambda^l \lambda^{m+l} \right|_{\lambda = \lambda_k} \eqqcolon \sum_{k=1}^n \beta_k \lambda_k^{(m)}\\
+\beta_k =& (\bar\beta_{1,0}, \dots, \bar\beta_{1,\mu_1-1},\; \bar\beta_{2,0}, \dots, \bar\beta_{2,\mu_2-1},\; \dots,\; \bar\beta_{r,0}, \dots, \bar\beta_{r,\mu_r-1})_k \nonumber\\
+\lambda_k^{(m)} =& (\lambda_1^m, \dots, \del_{\lambda_1}^{\mu_1-1} \lambda_1^{m+\mu_1-1},\; \lambda_2^m, \dots, \del_{\lambda_2}^{\mu_2-1} \lambda_2^{m+\mu_2-1},\; \dots,\; \lambda_r^m, \dots, \del_{\lambda_r}^{\mu_r-1} \lambda_r^{m+\mu_r-1})_k \nonumber
+\end{align}
+For $m<n:\ \alpha_{mk} = \delta_{mk}\ \Rightarrow \delta_{m,n-1} = \beta_k \lambda_k^{(m)}$
+\begin{align}
+\Rightarrow \vec \beta \perp& \sum_{k=1}^n \hat e_k \lambda_k^m \eqqcolon \vec \lambda^{(m)} \ \text{for}\ m=0\dots n-2 \nonumber\\
+\tilde\beta_k \coloneqq& \det(\hat e_k | \vec\lambda^{(n-2)} | \vec\lambda^{(n-3)} | \dots | \vec\lambda^{(0)})\nonumber\\
+\beta =& \tilde\beta /\big( \tilde \beta \cdot \lambda^{(n-1)} \big)
+\end{align}
+$\eqref{recurrent ndim}$ yields for $\alpha_{mk}$:
+\begin{align}
+\alpha_{mk} =& \sum_{j=1}^{k+1} \alpha_{m-j,n-1} \Lambda_{k+1-j} = \sum_{j=1}^{k+1} \vec\beta\cdot\vec\lambda^{(m-j)} \Lambda_{k+1-j} = \sum_{j=0}^k \Lambda_j \vec\beta\cdot \vec\lambda^{(m+j-k-1)}
+\end{align}
+As in the two dimensional case this defines $f(A)$ if $f$ is analytical in the eigenvalues of $A$:
+\begin{align}
+A^m =& \sum_{k=0}^{n-1} A^k \sum_{j=0}^k \Lambda_j \sum_{l=1}^r \lambda_l^{m+j-k-1} \sum_{p=0}^{\mu_l-1} \bar\beta_{lp} \frac{(m+j-k-1+p)!}{(m+j-k-1)!}\\
+f(A) =& \sum_{k=0}^{n-1} A^k \sum_{j=0}^k \Lambda_j \sum_{l=1}^r \sum_{p=0}^{\mu_l-1} \bar\beta_{lp} \del_{\lambda_l}^p \lambda_l^{j-k-1+p} f(\lambda_l) \nonumber\\
+=& \sum_{k=0}^{n-1} A^k \sum_{j=0}^k \Lambda_j \sum_{l=1}^r \sum_{p=0}^{\mu_l-1} \bar\beta_{lp} \sum_{q=0}^p \binom pq \frac{(j-k-1+p)!}{(j-k-1+q)!}\lambda_l^{j-k-1+q} f^{(q)}(\lambda_l)
+\end{align}
+Since $f(A)$ is linear in $A^k$ and $f^{(q)}(\lambda_l)$ we can define the tensors $\mathcal F$ and $F$, s.t.
+\begin{align}
+f(A) = \sum_{i=0}^{n-1} \sum_{j=1}^r \sum_{k=0}^{\mu_j-1} \mathcal F_{ij}^{(k)} A^i f^{(k)}(\lambda_j),\ \ \ \ F_{ijk}^{(l)} = \sum_{m=0}^{n-1} \mathcal F_{mk}^{(l)} (A^m)_{ij}
+\end{align}
+\begin{align}
+\mathcal F_{kl}^{(q)} =& \del_{x_q} \del_{y_l} \sum_{j=0}^k \Lambda_j \sum_{l'=1}^r \sum_{p=0}^{\mu_{l'}-1} \bar\beta_{l'p} \sum_{q'=0}^p \binom p{q'} \frac{(j-k-1+p)!}{(j-k-1+q')!}\lambda_{l'}^{j-k-1+q'} x_{q'} y_{l'} \nonumber\\
+=& \sum_{j=0}^k \Lambda_j \sum_{p=q}^{\mu_l-1} \bar\beta_{lp} \binom pq \frac{(j-k-1+p)!}{(j-k-1+q)!}\lambda_l^{j-k-1+q}
+\end{align}
+\subsubsection*{Sanity check for $n=2$}
+\begin{itemize}
+\item $\lambda_1 \neq \lambda_2\ \Rightarrow\ \mu_1 = \mu_2 = 1,\; r=2:$
+\begin{align*}
+\lambda_k^{(m)} =& \lambda_k^m,\ \beta_{\cdot\;0} = \frac 1{\lambda_1 - \lambda_2} \begin{pmatrix} 1\\-1 \end{pmatrix},\ \Lambda_0 = -\lambda_1\lambda_2,\ \Lambda_1 = \lambda_1 + \lambda_2\\
+\mathcal F^{(0)} =& \begin{pmatrix} \Lambda_0\bar\beta_{10}/\lambda_1 & \Lambda_0\bar\beta_{20}/\lambda_2 \\ \Lambda_0\bar\beta_{10}/\lambda_1^2 + \Lambda_1\bar\beta_{10}/\lambda_1 & \Lambda_0\bar\beta_{20}/\lambda_2^2 + \Lambda_1\bar\beta_{20}/\lambda_2 \end{pmatrix} = \frac 1{\lambda_1 - \lambda_2} \begin{pmatrix} -\lambda_2 & \lambda_1 \\ 1 & -1 \end{pmatrix}\\
+\Rightarrow f(A) =& \frac 1 {\lambda_1-\lambda_2}\big[ \big(f(\lambda_1) - f(\lambda_2)\big) A - \big(\lambda_2 f(\lambda_1) - \lambda_1 f(\lambda_2)\big) \mathbbm 1 \big]\ \checkmark
+\end{align*}
+\item $\lambda_1 = \lambda_2 = \lambda\ \Rightarrow\ \mu_1 = 2,\; r=1:$
+\begin{align*}
+\lambda_k^{(m)} =& \big(\lambda^m, (m+1)\lambda^m\big)_k,\ \beta_{1\;\cdot} = \frac 1\lambda \begin{pmatrix} -1\\1 \end{pmatrix},\ \Lambda_0 = -\lambda^2,\ \Lambda_1 = 2\lambda\\
+\mathcal F^{(0)} =& \begin{pmatrix} \Lambda_0 \bar\beta_{10}/\lambda \\ \Lambda_0 \bar\beta_{10}/\lambda^2 + \Lambda_1 (\bar\beta_{10} + 2\bar\beta_{11})/\lambda \end{pmatrix} = \begin{pmatrix} 1 \\ 1/\lambda + 4/\lambda \end{pmatrix}\\
+\Rightarrow f(A) =& \frac 1 {\lambda_1-\lambda_2}\big[ \big(f(\lambda_1) - f(\lambda_2)\big) A - \big(\lambda_2 f(\lambda_1) - \lambda_1 f(\lambda_2)\big) \mathbbm 1 \big]\ \checkmark
+\end{align*}
+\end{itemize}
+\end{comment}
+
 \include{matrix-functions-docu-appendix}
 
 

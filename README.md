@@ -8,8 +8,10 @@ $$
 It turns out that $\alpha_{mk}$ only depends on the eigenvalues $\lambda_1,\ \dots,\ \lambda_n$. Because of this every matrix function can be expressed in the krylov space if the function is analytical in the eigenvalues:
 
 $$
-A^m = \sum_{k=0}^{n-1} A^k \sum_{j=0}^k \Lambda_j  \beta \cdot \lambda^{(m+j-k-1)},\ \ \ \ 
-f(A) = \sum_{k=0}^{n-1} A^k \sum_{j=0}^k \Lambda_j \sum_{i=1}^n \beta_i \lambda_i^{j-k-1} f(\lambda_i)
+A^m =& \sum_{k=0}^{n-1} A^k \sum_{j=1}^{k+1} \Lambda_{k+1-j} \sum_{l=1}^r \sum_{p=0}^{\min(\mu_l-1,m)} \bar\beta_{lp} \lambda_l^{m-j-p} \frac{(m-j)!}{(m-j-p)!}
+$$
+$$
+f(A) =& \sum_{k=0}^{n-1} A^k \sum_{j=1}^{k+1} \Lambda_{k+1-j} \sum_{l=1}^r \sum_{p=0}^{\mu_l-1} \bar\beta_{lp} \sum_{q=0}^p \binom pq (-1)^{p-q}\frac{(j-1+p-q)!}{(j-1)!} \lambda_l^{-j-p+q} f^{(q)}(\lambda_l)
 $$
 
 ## Example
