@@ -18,7 +18,7 @@ jobs:
   # This workflow contains a single job called "build"
   build:
     runs-on: ubuntu-latest
-    
+    if: github.triggering_actor == 'nextdorf'
     steps:
       - uses: actions/checkout@v3
 
@@ -55,6 +55,7 @@ jobs:
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
           prerelease: false
+          automatic_release_tag: "${{ github.ref_name || 'nightly' }}"
           files: |
             tex/matrix-functions-docu.pdf
             dist/*
