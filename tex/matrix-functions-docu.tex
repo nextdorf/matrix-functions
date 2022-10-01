@@ -193,7 +193,7 @@ $\eqref{recurrent ndim}$ yields for $\alpha_{mk}$:
 \begin{align}
 \alpha_{mk} =& \sum_{j=1}^{k+1} \alpha_{m-j,n-1} \Lambda_{k+1-j} = \sum_{j=1}^{k+1} \vec\beta\cdot\vec\lambda^{(m-j)} \Lambda_{k+1-j}
 \end{align}
-As in the two dimensional case this defines $f(A)$ if $f$ is analytical in the eigenvalues of $A$:
+As in the two dimensional case this defines $f(A)$ if $f$ is analytical in the eigenvalues of $A$. If none of the eigenvalues is $0$:
 \begin{align}
 A^m =& \sum_{k=0}^{n-1} A^k \sum_{j=1}^{k+1} \Lambda_{k+1-j} \sum_{l=1}^r \sum_{p=0}^{\min(\mu_l-1,m-j)} \bar\beta_{lp} \lambda_l^{m-j-p} \frac{(m-j)!}{(m-j-p)!}\\
 f(A) =& \sum_{k=0}^{n-1} A^k \sum_{j=1}^{k+1} \Lambda_{k+1-j} \sum_{l=1}^r \sum_{p=0}^{\mu_l-1} \bar\beta_{lp} \del_{\lambda_l}^p \lambda_l^{-j} f(\lambda_l) \nonumber\\
