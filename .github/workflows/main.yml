@@ -59,6 +59,7 @@ jobs:
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
           prerelease: false
+          draft: false
           #automatic_release_tag: "${{ github.ref_name || 'nightly' }}"
           automatic_release_tag: "${{ env.PKGVERSION }}"
           files: |
