@@ -22,6 +22,20 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Setup python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10' 
+          cache: 'pip'
+          cache-dependency-path: 'pyproject.toml'
+      
+      - name: Build python package
+        run: |
+          pip install --upgrade build
+          python -m build
+          PKGVERSION=$(python -c "$(grep version\ =\  matrixfuncs/_version.py); print(version)")
+          echo "Build version $PKGVERSION"
+
       - name: LaTeX compilation
         # You may pin to the exact commit or the version.
         # uses: dante-ev/latex-action@49cf7cb5f79e7b2006dbdffea85e02bec0b6244b
@@ -38,25 +52,13 @@ jobs:
           # Install extra packages by apt-get
           #extra_system_packages: # optional
 
-      - name: Setup python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10' 
-          cache: 'pip'
-          cache-dependency-path: 'pyproject.toml'
-      
-      - name: Build python package
-        run: |
-          pip install --upgrade build
-          python -m build
-
       - name: Upload documentation to releases
         uses: marvinpinto/action-automatic-releases@v1.2.1
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
           prerelease: false
           #automatic_release_tag: "${{ github.ref_name || 'nightly' }}"
-          automatic_release_tag: python -c "$(grep version\ =\  matrixfuncs/_version.py); print(version)"
+          automatic_release_tag: "$PKGVERSION"
           files: |
             tex/matrix-functions-docu.pdf
             dist/*
