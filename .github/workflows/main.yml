@@ -35,7 +35,8 @@ jobs:
           python -m build
           PKGVERSION=$(python -c "$(grep version\ =\  matrixfuncs/_version.py); print(version)")
           echo "PKGVERSION=$PKGVERSION" >> $GITHUB_ENV
-      - name: "Build version ${{ env.PKGVERSION }}"
+      - name: "Built version ${{ env.PKGVERSION }}"
+        run: echo "Built version ${{ env.PKGVERSION }}"
 
       - name: LaTeX compilation
         # You may pin to the exact commit or the version.
