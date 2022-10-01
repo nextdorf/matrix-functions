@@ -58,7 +58,7 @@ jobs:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
           prerelease: false
           #automatic_release_tag: "${{ github.ref_name || 'nightly' }}"
-          automatic_release_tag: "${PKGVERSION}"
+          automatic_release_tag: "${{ env.PKGVERSION }}"
           files: |
             tex/matrix-functions-docu.pdf
             dist/*
