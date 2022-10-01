@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools"]
+requires = ["setuptools", "setuptools-scm"]
 build-backend = "setuptools.build_meta"
 
 
@@ -8,7 +8,7 @@ packages = ["matrixfuncs"]
 
 [project]
 name = "matrixfuncs"
-version = "0.0.1"
+dynamic = ["version"]
 description = "Provides classes for calculating with krylov spaces and matrix functions"
 readme = "README.md"
 requires-python = ">=3.5"
