@@ -34,7 +34,7 @@ jobs:
           pip install --upgrade build
           python -m build
           PKGVERSION=$(python -c "$(grep version\ =\  matrixfuncs/_version.py); print(version)")
-          echo "PKGVERSION=$PKGVERSION" >> $GITHUB_ENV
+          echo "PKGVERSION=v$PKGVERSION" >> $GITHUB_ENV
       - name: "Report built version"
         run: echo "Built version ${{ env.PKGVERSION }}"
 
