@@ -24,6 +24,9 @@ classifiers = [
   ]
 dependencies = [
   "numpy",
+  "scipy",
+  "sympy",
+  "joblib"
   ]
 
 

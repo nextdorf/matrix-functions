@@ -1,15 +1,9 @@
-from typing import Generator
 import numpy as np
-#import sympy as sp
-import symengine as se
-import scipy.linalg
+import sympy as sp
+from scipy.special import comb
 from numpy.typing import NDArray
-#import multiprocessing
 from joblib import delayed, Parallel, cpu_count
 
-def square(x): return x*x
-values = Parallel(n_jobs=cpu_count())(delayed(square)(x) for x in range(1000))
-type(values)
 
 class SymKrylovSpace:
   '''Calculates various objects related to the krylov space of some square matrix but independent from the representation.
@@ -33,95 +27,69 @@ class SymKrylovSpace:
 
   def __init__(self, multiplicity: NDArray[np.integer]):
     self.multiplicity = np.array(multiplicity)
-    self.eigvals: list[se.Symbol] = list(se.var(f'\\lambda_1:{len(self.multiplicity) + 1}'))
-    self.beta = AbstrKrylovSpace.Beta(eigvals=self.eigvals)
-    self.lambdaCoeffs = AbstrKrylovSpace.Lambda(eigvals=self.eigvals)
-    self.funcCoeffs = AbstrKrylovSpace.FunctionCoeffs(self.basis, self.beta, self.lambdaCoeffs, self.eigvals)
+    self.eigvals: sp.Array = sp.Array(sp.var(f'\\lambda_1:{len(self.multiplicity) + 1}'))
+    self.lambdaVec, self.mVar = SymKrylovSpace.LambdaVec(self.eigvals, self.multiplicity)
+    self.betaVec = SymKrylovSpace.BetaVec(self.lambdaVec, eigvals=self.eigvals)
+    self.betaM = SymKrylovSpace.BetaM(self.multiplicity, self.betaVec, self.eigvals)
+    self.lambdaCoeffs = SymKrylovSpace.LambdaCoeffs(self.eigvals, self.multiplicity)
+    self.funcCoeffs = SymKrylovSpace.FunctionCoeffs(self.eigvals, self.multiplicity, self.betaM, self.lambdaCoeffs)
 
   @staticmethod
-  def LambdaVec(eigvals: list[se.Symbol], multiplicity: NDArray[np.integer], m: se.Symbol = se.var('m')):
+  def LambdaVec(eigvals: sp.Array, multiplicity: NDArray[np.integer], m: sp.Symbol = sp.var('m')):
     assert len(eigvals) == len(multiplicity)
-    ret: list[se.Symbol] = []
+    ret: list[sp.Symbol] = []
     for i in range(len(eigvals)):
       ev = eigvals[i]
       for j in range(multiplicity[i]):
         ret.append((ev**m).diff(ev, j).simplify())
-    return se.Matrix([ret]), m
+    return sp.Array(ret), m
 
   @staticmethod
-  def BetaVec0(eigvals: list[se.Symbol], multiplicity: NDArray[np.integer], lambdaVec: se.Matrix | None = None, m: se.Symbol = se.var('m')):
+  def BetaVec0(lambdaVec: sp.Array|None = None, eigvals: sp.Array|None = None, multiplicity: NDArray[np.integer]|None=None, m: sp.Symbol = sp.var('m')):
+    if lambdaVec is None:
+      lambdaVec,_ = SymKrylovSpace.LambdaVec(eigvals, multiplicity, m)
     n = len(lambdaVec)
-    matrix0 = se.Matrix([lambdaVec.subs(m, i) for i in range(n-1)])
-    eyeN = se.eye(n)
-    beta0: se.Matrix = se.Matrix([[matrix0.col_join(eyeN[i,:]).det() for i in range(n)]])
-    beta0.simplify()
+    if multiplicity is not None:
+      assert n == np.sum(multiplicity)
+    matrix0 = sp.Matrix([lambdaVec.subs(m, i) for i in range(n-1)])
+    eyeN = sp.eye(n)
+    beta0: sp.Array = sp.Array(Parallel(n_jobs=cpu_count())(delayed(
+        lambda i: matrix0.col_join(eyeN[i,:]).det().simplify().factor()
+      )(i) for i in range(n)))
     return beta0
 
-  def BetaVec(eigvals: list[se.Symbol], multiplicity: NDArray[np.integer], lambdaVec: se.Matrix | None = None, betaVec0: se.Matrix|None=None, m: se.Symbol = se.var('m')):
+  @staticmethod
+  def BetaVec(lambdaVec: sp.Array|None=None, betaVec0: sp.Array|None=None, eigvals: sp.Array|None=None, multiplicity: NDArray[np.integer]|None = None, m: sp.Symbol = sp.var('m')):
+    if lambdaVec is None:
+      lambdaVec,_ = SymKrylovSpace.LambdaVec(eigvals, multiplicity, m)
+    if betaVec0 is None:
+      betaVec0 = SymKrylovSpace.BetaVec0(lambdaVec, eigvals, multiplicity, m)
     n = len(lambdaVec)
-    beta: se.Matrix = betaVec0 / betaVec0.dot(lambdaVec.subs(m, n-1))
-    beta.simplify()
-    return beta
+    if multiplicity is not None:
+      assert n == np.sum(multiplicity)
+    #beta: sp.Array = betaVec0 / sp.tensorcontraction(sp.tensorproduct(betaVec0, lambdaVec.subs(m, n-1)), (0,1)).simplify()
+    beta: sp.Array = betaVec0 / (np.array(betaVec0.tolist()) @ lambdaVec.subs(m, n-1).tolist()).factor()
+    return beta.simplify()
 
   @staticmethod
-  def Beta0(M: np.ndarray | None =None, eigvals: np.ndarray | None =None):
-    '''A vector which is perpendicular to e_i*ev_i^m for m=0..n-2 where ev_i are the eigenvalues and n the number of eigenvalues
+  def BetaM(multiplicity: NDArray[np.integer]|None=None, betaVec: sp.Array|None=None, eigvals: sp.Array|None=None, betaVec0: sp.Array|None=None, lambdaVec: sp.Array|None=None, m: sp.Symbol = sp.var('m')) -> sp.Array:
+    if betaVec is None:
+      betaVec = SymKrylovSpace.BetaVec(lambdaVec, betaVec0, eigvals, multiplicity, m)
+    multMax = np.max(multiplicity)
+    betaVecL = betaVec.tolist()
+    beta = []
+    m0 = 0
+    for mi in multiplicity:
+      row = betaVecL[m0:m0+mi]
+      if mi < multMax:
+        row += [0]*(multMax-mi)
+      beta.append(row)
+      m0+=mi
+    return sp.Array(beta)
 
-    Parameters
-    ----------
-    M : array-like | None = None
-      A square matrix
-    eigvals : array-like | None = None
-      The eigenvalues of `M`
-    Either `eigvals` or `M` should be specified.
-    '''
-    if eigvals is None:
-      if M is None:
-        raise ValueError('M or eigvals have to be specified')
-      else:
-        eigvals = np.linalg.eigvals(M)
-    else:
-      eigvals = np.array(eigvals)
-    nEigvals = eigvals.shape[0]
-    if nEigvals == 1: return 1.
-    if nEigvals == 2: return np.array([1,-1], dtype=eigvals.dtype)
-    Q = ([np.ones_like(eigvals), eigvals] + [eigvals**k for k in range(2, nEigvals-1)])[::-1]
-    ret = [np.linalg.det([ei]+Q) for ei in np.eye(nEigvals)]
-    return np.array(ret)
 
   @staticmethod
-  def Beta(beta0: np.ndarray|None=None, eigvals: np.ndarray|None=None, M:np.ndarray|None=None):
-    '''beta0/(beta0 @ e_i*ev_i^(n-1)), see also method `KrylovSpace.Beta0`.
-
-    Parameters
-    ----------
-    beta0 : array-like | None = None
-      Beta0
-    eigvals : array-like | None = None
-      The eigenvalues of `M`
-    M : array-like | None = None
-      A square matrix
-    Either `eigvals` or `M` should be specified. Optionally specify beta0.
-    '''
-    if eigvals is None:
-      if M is None:
-        raise ValueError('M or eigvals have to be specified')
-      else:
-        eigvals = np.linalg.eigvals(M)
-    else:
-      eigvals = np.array(eigvals)
-    if beta0 is None:
-      beta0 = KrylovSpace.Beta0(M, eigvals)
-    else:
-      beta0 = np.array(beta0)
-
-    nEigvals = eigvals.shape[0]
-    lms = eigvals**(nEigvals-1)
-    ret: np.ndarray = beta0 / (beta0 @ lms)
-    return ret
-
-  @staticmethod
-  def Lambda(eigvals: np.ndarray|None=None, M: np.ndarray|None=None, inds: list[int]|int|None=None):
+  def LambdaCoeffs(eigvals: sp.Array, multiplicity: NDArray[np.integer]) -> sp.Array:
     '''The coefficients of M^n as a vector in the krylov space. There are also equal to the non-trivial negated coeffecients of the characteristic polynomial of `M`
     
     Parameters
@@ -134,48 +102,14 @@ class SymKrylovSpace:
       The indices for which the coefficients should be calculated. If `None` all coefficients are calculated.
     Either `eigvals` or `M` should be specified. Optionally specify `inds`.
     '''
-    if eigvals is None:
-      if M is None:
-        raise ValueError('M or eigvals have to be specified')
-      else:
-        eigvals = np.linalg.eigvals(M)
-    else:
-      eigvals = np.array(eigvals)
-    nEigvals = eigvals.shape[0]
-    if inds is None:
-      inds = range(nEigvals)
-    def getLambdaI(k:int) -> float|complex:
-      def multiI():
-        js = list(range(nEigvals-k))
-        while True:
-          yield js
-          i = next((i for i in range(1, len(js)+1) if js[-i] < nEigvals-i), None)
-          if i is None:
-            break
-          else:
-            js[-i]+=1
-            for j in range(-i+1, 0):
-              js[j] = js[j-1]+1
-          # if js[-1] < nEigvals-1:
-          #   js[-1]+=1
-          # elif js[-2] < nEigvals-2:
-          #   js[-2]+=1
-          #   js[-1]=js[-2]+1
-          # #...
-          # else:
-          #   break
-      arr = []
-      for js in multiI():
-        arr.append(-np.prod(-eigvals[js]))
-      return np.sum(arr)
+    t = sp.var('t')
+    charPolyNeg: sp.Poly = -sp.Poly(sp.prod([(t-eigvals[i])**multiplicity[i] for i in range(len(eigvals))]), t)
+    return sp.Array(charPolyNeg.all_coeffs()[1:][::-1])
+    
 
-    if hasattr(inds, '__iter__'):
-      return np.array([getLambdaI(i) for i in inds])
-    else:
-      return getLambdaI(inds)
     
   @staticmethod
-  def FunctionCoeffs(basis: np.ndarray|None=None, beta:np.ndarray|None=None, lambdaCoeffs: np.ndarray|None=None, eigvals: np.ndarray|None=None, **kwargs):
+  def FunctionCoeffs(eigvals: sp.Array, multiplicity: NDArray[np.integer], betaM: sp.Array|None=None, lambdaCoeffs: sp.Array|None=None, **kwargs):
     '''A rank 3 tensor which collects all contraction to efficiently calculate the matrix via tensor contraction.
     In total `f(M)_ij = FunctionCoeffs(..)_ijk f(eigvals_k)`
 
@@ -191,36 +125,52 @@ class SymKrylovSpace:
       The eigenvalues of `M`
     Either `eigvals` or `M` should be specified. Optionally specify `basis`, `beta` and `lambdaCoeffs`.
     '''
-    if eigvals is None:
-      M = kwargs.get('M', None)
-      if M is None:
-        raise ValueError('M or eigvals have to be specified')
-      else:
-        eigvals = np.linalg.eigvals(M)
-    else:
-      eigvals = np.array(eigvals)
-    nEigvals = eigvals.shape[0]
-    if basis is None:
-      basis = KrylovSpace.Basis(eigvals=eigvals, **kwargs)
-    if beta is None:
-      beta = KrylovSpace.Beta(eigvals=eigvals, **kwargs)
+    n = len(eigvals)
+    maxMult = np.max(multiplicity)
     if lambdaCoeffs is None:
-      lambdaCoeffs = KrylovSpace.Lambda(eigvals=eigvals, **kwargs)
-    eigvalTensor = np.array([eigvals**q for q in range(-nEigvals, 0)]).T
-    #eigvalTensorK = lambda k: np.array([eigvals**q for q in range(-k-1, 0)]).T
-    eigvalTensorK = lambda k: eigvalTensor[:, nEigvals-k-1:]
-    ret : np.ndarray = np.sum([np.outer(basis[k], beta*(eigvalTensorK(k) @ lambdaCoeffs[:k+1])).reshape((nEigvals,)*3) for k in range(nEigvals)], axis=0)
-    #ret = np.sum([np.einsum('ij,k,km,m->ijk', basis[k], beta, eigvalTensorK(k), lambdaCoeffs[:k+1]) for k in range(nEigvals)], axis=0)
+      lambdaCoeffs = SymKrylovSpace.LambdaCoeffs(eigvals, multiplicity)
+    if betaM is None:
+      betaM = SymKrylovSpace.BetaM(multiplicity, eigvals=eigvals)
+
+    def getElem(k,l,q):
+      js = np.arange(k+1)
+      ps = np.arange(q, multiplicity[l])
+      t1 = np.array(lambdaCoeffs[k::-1].tolist()) #(kj)
+      t2 = np.array(betaM[l, ps[0]:ps[-1]+1].tolist()) #(lp)
+      t3 = np.outer(np.ones_like(js), np.array([comb(p, q, exact=True) for p in ps])*(-1)**(ps-q)) * np.array([[np.arange(j+1, j+1+p-q).prod() for p in ps] for j in js]) #(jp)
+      t4 = np.array([[eigvals[l]**-(j+1+p-q) for p in ps] for j in js]) #(jp)
+      res = (t1 @ (t3*t4) @ t2).simplify().factor()
+      return res
+    ret: sp.Array = sp.Array(
+      [
+        [
+          [
+            getElem(k,l,q)
+            for q in range(multiplicity[l])]
+          + [0]*(maxMult - multiplicity[l])
+          for l in range(len(eigvals))]
+        for k in range(n)]
+      )
     return ret
 
   def __repr__(self) -> str:
-    return 'KrylovSpace'+repr(dict(
-      M = self.M,
-      Eigvals = self.eigvals,
-      Basis = self.basis,
-      Beta0 = KrylovSpace.Beta0(self.eigvals),
-      Beta = self.beta,
-      Lambda = self.lambdaCoeffs, 
-      Coeffs = self.funcCoeffs,
-    ))
+    # return 'KrylovSpace'+repr(dict(
+    #   M = self.M,
+    #   Eigvals = self.eigvals,
+    #   Basis = self.basis,
+    #   Beta0 = KrylovSpace.Beta0(self.eigvals),
+    #   Beta = self.beta,
+    #   Lambda = self.lambdaCoeffs, 
+    #   Coeffs = self.funcCoeffs,
+    # ))
+    return 'SymKrylov'
+
+sk = SymKrylovSpace([1,2,3])
+sk.funcCoeffs
+
+sk11 = SymKrylovSpace([1,1])
+sk2 = SymKrylovSpace([2])
+sk11.funcCoeffs
+sk2.funcCoeffs
+
 
