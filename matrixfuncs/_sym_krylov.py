@@ -4,6 +4,74 @@ from scipy.special import comb
 from numpy.typing import NDArray
 from joblib import delayed, Parallel, cpu_count
 
+import sys
+gettrace = getattr(sys, 'gettrace', None)
+_inDebugMode = gettrace and gettrace() is not None
+
+
+def normalOrderOp(permOld: list[int], permNew: list[int]):
+  assert len(permOld) == len(permNew)
+  op = {i: permNew[i] for i in range(len(permNew)) if permNew[i] != permOld[i]}
+  return op
+
+def normalOrderPerm(perm: list[int]):
+  zipped = sorted(zip(range(len(perm)), perm), key=lambda x: -x[1])
+  indPerm, ordPerm = map(list, zip(*zipped))
+  return indPerm, ordPerm
+
+def normalOrderOpFrom(perm: list[int]):
+  indPerm, ordPerm = normalOrderPerm(perm)
+  return normalOrderOp(range(len(indPerm)), indPerm), normalOrderOp(perm, ordPerm)
+
+def normalOrderOpTo(perm: list[int]):
+  indPerm, ordPerm = normalOrderPerm(perm)
+  return normalOrderOp(indPerm, range(len(indPerm))), normalOrderOp(ordPerm, perm)
+
+
+class SymKrylovSpaceCache:
+  def __init__(self):
+    self.value: dict[tuple[int, ...], SymKrylovSpace] = {}
+  def __getitem__(self, perm: tuple[int, ...]):
+    perm = list(perm) if hasattr(perm, '__iter__') else [perm]
+    if len(perm) == 0: return SymKrylovSpace([])
+    indsPerm0: tuple[tuple[int, ...], tuple[int, ...]] = map(tuple, normalOrderPerm(perm))
+    inds0, perm0 = indsPerm0
+    indsMult0 = []
+    for i in range(len(perm)):
+      i0 = np.sum(perm[:i], dtype=int)
+      indsMult0 += [list(range(i0, i0+perm[i]))]
+    indsMult0 = list(np.concatenate([indsMult0[i] for i in inds0])) #permutation of perm
+    _, indsMult0 = map(list, zip(*sorted(zip(indsMult0, range(len(indsMult0))), key=lambda x: x[0]))) #inverse permutation of perm
+    ret = SymKrylovSpace([])
+    if perm0 not in self.value:
+      self.value[perm0] = SymKrylovSpace(perm0)
+    sk = self.value[perm0]
+    ret.multiplicity = np.array(perm)
+    permTo = normalOrderOp(range(len(perm)), list(inds0))
+    tmpVars = sp.Array(sp.var(f'\\lambda1:{len(perm)+1}^{{(tmp)}}'))
+    subL1 = [(sk.eigvals[iFrom], tmpVars[iFrom]) for iFrom, iTo in permTo.items()]
+    subL2 = [(tmpVars[iFrom], sk.eigvals[iTo]) for iFrom, iTo in permTo.items()]
+    ret.eigvals = sk.eigvals.copy()
+    ret.mVar = sk.mVar
+    for attrName in 'lambdaVec betaVec betaM lambdaCoeffs funcCoeffs'.split():
+      attr: sp.Array = getattr(sk, attrName)
+      attr = attr.subs(subL1).subs(subL2)
+      setattr(ret, attrName, attr)
+    for attrName in 'lambdaVec betaVec'.split():
+      attr: sp.Array = getattr(ret, attrName)
+      attr = sp.Array(np.array(attr)[indsMult0])
+      setattr(ret, attrName, attr)
+    for attrName in 'betaM funcCoeffs'.split():
+      attr: sp.Array = getattr(ret, attrName)
+      attr = sp.Array(np.array(attr)[...,inds0,:])
+      setattr(ret, attrName, attr)
+    return ret
+
+  def __str__(self) -> str:
+    return f'SymKrylovSpaceCache{list(self.value)}'
+  def __repr__(self) -> str:
+    return str(self)
+
 
 class SymKrylovSpace:
   '''Calculates various objects related to the krylov space of some square matrix but independent from the representation.
@@ -25,17 +93,33 @@ class SymKrylovSpace:
     A tensor for calculating any matrix function efficiently
   '''
 
-  def __init__(self, multiplicity: NDArray[np.integer]):
+  def __init__(self, multiplicity: NDArray[np.integer]| int, *additionalMults: int):
+    if additionalMults:
+      if hasattr(multiplicity, '__iter__'):
+        multiplicity = list(multiplicity) + list(additionalMults)
+      else:
+        multiplicity = list((multiplicity,) + additionalMults)
+    elif not hasattr(multiplicity, '__iter__'):
+      multiplicity = [multiplicity]
+
     self.multiplicity = np.array(multiplicity)
-    self.eigvals: sp.Array = sp.Array(sp.var(f'\\lambda_1:{len(self.multiplicity) + 1}'))
-    self.lambdaVec, self.mVar = SymKrylovSpace.LambdaVec(self.eigvals, self.multiplicity)
-    self.betaVec = SymKrylovSpace.BetaVec(self.lambdaVec, eigvals=self.eigvals)
-    self.betaM = SymKrylovSpace.BetaM(self.multiplicity, self.betaVec, self.eigvals)
-    self.lambdaCoeffs = SymKrylovSpace.LambdaCoeffs(self.eigvals, self.multiplicity)
-    self.funcCoeffs = SymKrylovSpace.FunctionCoeffs(self.eigvals, self.multiplicity, self.betaM, self.lambdaCoeffs)
+    if len(self.multiplicity) > 0:
+      if len(self.multiplicity) == 1:
+        self.eigvals: sp.Array = sp.Array([sp.var('\\lambda')])
+      else:
+        self.eigvals: sp.Array = sp.Array(sp.var(f'\\lambda_1:{len(self.multiplicity) + 1}'))
+      self.lambdaVec, self.mVar = SymKrylovSpace.LambdaVec(self.eigvals, self.multiplicity)
+      self.betaVec = SymKrylovSpace.BetaVec(self.lambdaVec, eigvals=self.eigvals)
+      self.betaM = SymKrylovSpace.BetaM(self.multiplicity, self.betaVec, self.eigvals)
+      self.lambdaCoeffs = SymKrylovSpace.LambdaCoeffs(self.eigvals, self.multiplicity)
+      self.funcCoeffs = SymKrylovSpace.FunctionCoeffs(self.eigvals, self.multiplicity, self.betaM, self.lambdaCoeffs)
+    else:
+      self.mVar = sp.var('m')
+      for attr in 'eigvals lambdaVec betaVec betaM lambdaCoeffs funcCoeffs'.split():
+        setattr(self, attr, sp.Array([]))
 
   @staticmethod
-  def LambdaVec(eigvals: sp.Array, multiplicity: NDArray[np.integer], m: sp.Symbol = sp.var('m')):
+  def LambdaVec(eigvals: sp.Array, multiplicity: NDArray[np.integer], m: sp.Symbol = sp.var('m')) -> tuple[sp.Array, sp.Symbol]:
     assert len(eigvals) == len(multiplicity)
     ret: list[sp.Symbol] = []
     for i in range(len(eigvals)):
@@ -53,13 +137,18 @@ class SymKrylovSpace:
       assert n == np.sum(multiplicity)
     matrix0 = sp.Matrix([lambdaVec.subs(m, i) for i in range(n-1)])
     eyeN = sp.eye(n)
-    beta0: sp.Array = sp.Array(Parallel(n_jobs=cpu_count())(delayed(
-        lambda i: matrix0.col_join(eyeN[i,:]).det().simplify().factor()
-      )(i) for i in range(n)))
+    if _inDebugMode:
+      beta0: sp.Array = sp.Array([
+        matrix0.col_join(eyeN[i,:]).det().simplify().factor() for i in range(n)
+        ])
+    else:
+      beta0: sp.Array = sp.Array(Parallel(n_jobs=cpu_count())(delayed(
+          lambda i: matrix0.col_join(eyeN[i,:]).det().simplify().factor()
+        )(i) for i in range(n)))
     return beta0
 
   @staticmethod
-  def BetaVec(lambdaVec: sp.Array|None=None, betaVec0: sp.Array|None=None, eigvals: sp.Array|None=None, multiplicity: NDArray[np.integer]|None = None, m: sp.Symbol = sp.var('m')):
+  def BetaVec(lambdaVec: sp.Array|None=None, betaVec0: sp.Array|None=None, eigvals: sp.Array|None=None, multiplicity: NDArray[np.integer]|None = None, m: sp.Symbol = sp.var('m')) -> sp.Array:
     if lambdaVec is None:
       lambdaVec,_ = SymKrylovSpace.LambdaVec(eigvals, multiplicity, m)
     if betaVec0 is None:
@@ -125,7 +214,7 @@ class SymKrylovSpace:
       The eigenvalues of `M`
     Either `eigvals` or `M` should be specified. Optionally specify `basis`, `beta` and `lambdaCoeffs`.
     '''
-    n = len(eigvals)
+    n = np.sum(multiplicity)
     maxMult = np.max(multiplicity)
     if lambdaCoeffs is None:
       lambdaCoeffs = SymKrylovSpace.LambdaCoeffs(eigvals, multiplicity)
@@ -154,23 +243,33 @@ class SymKrylovSpace:
     return ret
 
   def __repr__(self) -> str:
-    # return 'KrylovSpace'+repr(dict(
-    #   M = self.M,
-    #   Eigvals = self.eigvals,
-    #   Basis = self.basis,
-    #   Beta0 = KrylovSpace.Beta0(self.eigvals),
-    #   Beta = self.beta,
-    #   Lambda = self.lambdaCoeffs, 
-    #   Coeffs = self.funcCoeffs,
-    # ))
-    return 'SymKrylov'
+    evs = ', '.join(map(str, self.multiplicity))
+    return f'SymKrylov[ var: {self.mVar}, multiplicity: ({evs}) ]' if evs else 'SymKrylov[]'
+  def _repr_latex_(self) -> str:
+    evs = ',\\ '.join([f'{ev}\\; ({i})' for ev, i in zip(self.eigvals, self.multiplicity)])
+    return f'SymKrylov[ var: ${self.mVar}$, eigvals: ${evs}$ ]' if evs else 'SymKrylov[]'
 
-sk = SymKrylovSpace([1,2,3])
-sk.funcCoeffs
+# sk = SymKrylovSpace([1,2,3])
+# sk.funcCoeffs
 
-sk11 = SymKrylovSpace([1,1])
-sk2 = SymKrylovSpace([2])
-sk11.funcCoeffs
-sk2.funcCoeffs
+# sk11 = SymKrylovSpace([1,1])
+# sk2 = SymKrylovSpace([2])
+# sk11.funcCoeffs
+# sk2.funcCoeffs
+
+sk12 = SymKrylovSpace(1,2)
+sk12.funcCoeffs
+
+c = SymKrylovSpaceCache()
+# c[1]
+# c[2,1]
+csk12 = c[1,2]
+csk12.funcCoeffs
+
+for attrName in 'eigvals lambdaVec betaVec betaM lambdaCoeffs funcCoeffs'.split():
+  attr: sp.Array = getattr(sk12, attrName)
+  attrC: sp.Array = getattr(csk12, attrName)
+  isZero = np.all(np.array((attr - attrC).simplify().tolist()) == 0)
+  if not isZero: print(attrName)
 
 
