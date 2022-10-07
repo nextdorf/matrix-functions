@@ -249,27 +249,5 @@ class SymKrylovSpace:
     evs = ',\\ '.join([f'{ev}\\; ({i})' for ev, i in zip(self.eigvals, self.multiplicity)])
     return f'SymKrylov[ var: ${self.mVar}$, eigvals: ${evs}$ ]' if evs else 'SymKrylov[]'
 
-# sk = SymKrylovSpace([1,2,3])
-# sk.funcCoeffs
-
-# sk11 = SymKrylovSpace([1,1])
-# sk2 = SymKrylovSpace([2])
-# sk11.funcCoeffs
-# sk2.funcCoeffs
-
-sk12 = SymKrylovSpace(1,2)
-sk12.funcCoeffs
-
-c = SymKrylovSpaceCache()
-# c[1]
-# c[2,1]
-csk12 = c[1,2]
-csk12.funcCoeffs
-
-for attrName in 'eigvals lambdaVec betaVec betaM lambdaCoeffs funcCoeffs'.split():
-  attr: sp.Array = getattr(sk12, attrName)
-  attrC: sp.Array = getattr(csk12, attrName)
-  isZero = np.all(np.array((attr - attrC).simplify().tolist()) == 0)
-  if not isZero: print(attrName)
 
 
