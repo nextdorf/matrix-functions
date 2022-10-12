@@ -1,4 +1,4 @@
-from typing import Sequence
+from typing import Generator
 import numpy as np
 
 class IndexPermutation:
@@ -50,8 +50,8 @@ class IndexPermutation:
       return NotImplemented
     x = list(other)
     ret = (x[i] for i in self)
-    if  otherT is tuple: return tuple(ret)
-    elif  otherT is Sequence: return ret
+    if  isinstance(other, tuple): return tuple(ret)
+    elif  isinstance(other, Generator): return ret
     else: return list(ret)
 
   def __pow__(self, other: int):
@@ -126,19 +126,20 @@ class Permutation:
     return Permutation(self.normalOrder @ inv, inv, self.normalOrder, False)
 
   @staticmethod
-  def findIndexPermutation(value: list, normalOrder: list, noneVal='None', _assertCorrectness = True):
+  def findIndexPermutation(value: list, normalOrder: list, _assertCorrectness = True):
     if _assertCorrectness:
       assert sorted(value) == sorted(normalOrder), 'value is not a permutation of normalOrder'
     permOfValue = []
-    valCopy = list(value).copy()
-    noneValID = id(noneVal)
-    for v in normalOrder:
-      for i in range(len(valCopy)):
-        if id(valCopy[i]) == noneValID:
-          continue
-        elif valCopy[i] == v:
+    if not hasattr(value, '__len__'):
+      value = list(value)
+    if not hasattr(normalOrder, '__getitem__'):
+      normalOrder = list(normalOrder)
+    rs = list(range(len(value)))
+    for v in value:
+      for idx, i in enumerate(rs):
+        if normalOrder[i] == v:
           permOfValue.append(i)
-          valCopy[i] = noneVal
+          del rs[idx]
           break
     return IndexPermutation(*permOfValue, _assertCorrectness=_assertCorrectness)
 
@@ -168,7 +169,7 @@ class Permutation:
       return self.inverse
     perm = self.perm**other
     return Permutation(self.normalOrder @ perm, perm, self.normalOrder, False)
-    
+
 
   def __getitem__(self, idx):
     return self.value[idx]
@@ -181,16 +182,4 @@ class Permutation:
     return f'Permutation[{str(self.value)[1:-1]} | {str(self.perm.value)[1:-1]}]' if len(self) else 'Permutation[]'
   def __repr__(self) -> str:
     return str(self)
-
-
-IndexPermutation(1,0)@IndexPermutation(1,0)
-IndexPermutation(1,0).inverse
-IndexPermutation(0,2,3,4,5,1)**4
-IndexPermutation(2,3,4,5,1,0)**4
-
-(range(5)) @ IndexPermutation.One(5)
-
-Permutation([1,2,1], normalOrder=[2,1,1])
-
-
 
