@@ -1,1 +1,2 @@
-from ._utils import IndexPermutation, Permutation
+from ._permutation import IndexPermutation, Permutation
+from ._sympy import differentialLimit

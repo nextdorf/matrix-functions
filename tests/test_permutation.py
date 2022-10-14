@@ -1,25 +1,6 @@
 from typing import Generator
-from matrixfuncs import *
-import pytest
-import numpy as np
+from . import *
 
-
-def rndIndexPermutation(n: int):
-  return IndexPermutation(*np.random.choice(n, (n,), False))
-
-def rndPermutation(m: int, n: int):
-  vals = np.random.choice(m, (n,))
-  return Permutation(vals, normalOrder=sorted(vals))
-
-def directProd(xs0, *xss):
-  if len(xss) == 0:
-    for x in xs0:
-      yield (x,)
-  else:
-    inner = list(directProd(*xss))
-    for x in xs0:
-      for y in inner:
-        yield (x,) + y
 
 class TestIndexPermutation:
   @pytest.mark.parametrize('n', range(11))

@@ -1,56 +1,48 @@
 import numpy as np
 import sympy as sp
+from .utils import IndexPermutation, Permutation
+#from utils import IndexPermutation, Permutation
 from scipy.special import comb
 from numpy.typing import NDArray
 from joblib import delayed, Parallel, cpu_count
 
+#Parallel is broken in debug mode
 import sys
 gettrace = getattr(sys, 'gettrace', None)
 _inDebugMode = gettrace and gettrace() is not None
 
 
-def normalOrderOp(permOld: list[int], permNew: list[int]):
-  assert len(permOld) == len(permNew)
-  op = {i: permNew[i] for i in range(len(permNew)) if permNew[i] != permOld[i]}
-  return op
-
-def normalOrderPerm(perm: list[int]):
-  zipped = sorted(zip(range(len(perm)), perm), key=lambda x: -x[1])
-  indPerm, ordPerm = map(list, zip(*zipped))
-  return indPerm, ordPerm
-
-def normalOrderOpFrom(perm: list[int]):
-  indPerm, ordPerm = normalOrderPerm(perm)
-  return normalOrderOp(range(len(indPerm)), indPerm), normalOrderOp(perm, ordPerm)
-
-def normalOrderOpTo(perm: list[int]):
-  indPerm, ordPerm = normalOrderPerm(perm)
-  return normalOrderOp(indPerm, range(len(indPerm))), normalOrderOp(ordPerm, perm)
-
-
 class SymKrylovSpaceCache:
   def __init__(self):
     self.value: dict[tuple[int, ...], SymKrylovSpace] = {}
-  def __getitem__(self, perm: tuple[int, ...]):
-    perm = list(perm) if hasattr(perm, '__iter__') else [perm]
-    if len(perm) == 0: return SymKrylovSpace([])
-    indsPerm0: tuple[tuple[int, ...], tuple[int, ...]] = map(tuple, normalOrderPerm(perm))
-    inds0, perm0 = indsPerm0
-    indsMult0 = []
-    for i in range(len(perm)):
-      i0 = np.sum(perm[:i], dtype=int)
-      indsMult0 += [list(range(i0, i0+perm[i]))]
-    indsMult0 = list(np.concatenate([indsMult0[i] for i in inds0])) #permutation of perm
-    _, indsMult0 = map(list, zip(*sorted(zip(indsMult0, range(len(indsMult0))), key=lambda x: x[0]))) #inverse permutation of perm
+  def __getitem__(self, mults: tuple[int, ...]):
+    mults = list(mults) if hasattr(mults, '__iter__') else [mults]
+    if len(mults) == 0: return SymKrylovSpace([])
+
+    multsNormalOrdered = tuple(sorted(mults, key=lambda m: -m))
+    if multsNormalOrdered not in self.value:
+      self.value[multsNormalOrdered] = SymKrylovSpace(multsNormalOrdered)
+    sk = self.value[multsNormalOrdered]
+    sk.multiplicity = np.array(multsNormalOrdered)
+    ret = SymKrylovSpaceCache.permuteEigvals(sk, mults)
+    return ret
+
+  @staticmethod
+  def permuteEigvals(sk: 'SymKrylovSpace', newOrder: list[int]):
+    evL: list[list[int]] = []
+    i0 = 0
+    for m in sk.multiplicity:
+      evL.append(list(range(i0, i0+m)))
+      i0 += m
+
+    permMults = Permutation.findIndexPermutation(newOrder, sk.multiplicity)
+    permEvs = IndexPermutation(*[ev for evs in (evL @ permMults) for ev in evs])
+
     ret = SymKrylovSpace([])
-    if perm0 not in self.value:
-      self.value[perm0] = SymKrylovSpace(perm0)
-    sk = self.value[perm0]
-    ret.multiplicity = np.array(perm)
-    permTo = normalOrderOp(range(len(perm)), list(inds0))
-    tmpVars = sp.Array(sp.var(f'\\lambda1:{len(perm)+1}^{{(tmp)}}'))
-    subL1 = [(sk.eigvals[iFrom], tmpVars[iFrom]) for iFrom, iTo in permTo.items()]
-    subL2 = [(tmpVars[iFrom], sk.eigvals[iTo]) for iFrom, iTo in permTo.items()]
+    tmpVars: sp.Array = sp.Array(sp.var(f'\\lambda1:{len(permMults)+1}^{{(tmp)}}'))
+    subL1 = list(zip(sk.eigvals.tolist(), tmpVars.tolist()))
+    subL2 = list(zip(tmpVars.tolist(), sk.eigvals.tolist() @ permMults.inverse))
+    ret.multiplicity = np.array(newOrder)
     ret.eigvals = sk.eigvals.copy()
     ret.mVar = sk.mVar
     for attrName in 'lambdaVec betaVec betaM lambdaCoeffs funcCoeffs'.split():
@@ -59,11 +51,11 @@ class SymKrylovSpaceCache:
       setattr(ret, attrName, attr)
     for attrName in 'lambdaVec betaVec'.split():
       attr: sp.Array = getattr(ret, attrName)
-      attr = sp.Array(np.array(attr)[indsMult0])
+      attr = sp.Array(np.array(attr)[list(permEvs)])
       setattr(ret, attrName, attr)
     for attrName in 'betaM funcCoeffs'.split():
       attr: sp.Array = getattr(ret, attrName)
-      attr = sp.Array(np.array(attr)[...,inds0,:])
+      attr = sp.Array(np.array(attr)[..., list(permMults), :])
       setattr(ret, attrName, attr)
     return ret
 
@@ -195,7 +187,6 @@ class SymKrylovSpace:
     charPolyNeg: sp.Poly = -sp.Poly(sp.prod([(t-eigvals[i])**multiplicity[i] for i in range(len(eigvals))]), t)
     return sp.Array(charPolyNeg.all_coeffs()[1:][::-1])
     
-
     
   @staticmethod
   def FunctionCoeffs(eigvals: sp.Array, multiplicity: NDArray[np.integer], betaM: sp.Array|None=None, lambdaCoeffs: sp.Array|None=None, **kwargs):
@@ -242,6 +233,47 @@ class SymKrylovSpace:
       )
     return ret
 
+
+  def reduceFunctionCoeffs(self, ev1, ev2, dummyFunc='f', dummyVar='\\epsilon'):
+    if ev1 == ev2 or ev1 not in self.eigvals or ev2 not in self.eigvals:
+      return self.funcCoeffs
+    iA, iB = [i for i,ev in enumerate(self.eigvals) if ev in [ev1, ev2]]
+    auxvars = sp.var(f'\\lambda_1:{len(self.eigvals) + 1}^{{(tmp)}}')
+    evA = self.eigvals[iA]
+    evB = self.eigvals[iB]
+    subL1 = list(zip(self.eigvals[iB+1:], auxvars[iB+1:]))
+    subL2 = list(zip(auxvars[iB+1:], self.eigvals[iB:-1]))
+    mult = np.append(self.multiplicity[:iB], self.multiplicity[iB+1:])
+    mult[iA] += self.multiplicity[iB]
+    multMax = mult.max()
+
+    f = sp.Function(dummyFunc)
+    eps = sp.var(dummyVar)
+    fVec = sp.Array(self.eigvals).applyfunc(f)
+    funcCoeffs = self.funcCoeffs
+    fTensor = sp.Array([fVec.applyfunc(lambda q: q.diff(*q.args, i)) for i in range(funcCoeffs.shape[2])])
+    tensor = sp.Array(np.tensordot(funcCoeffs, fTensor, ((1,2), (1,0))))
+    #tensorRed: sp.Array = tensor.applyfunc(lambda x: sp.limit(x, evB, evA)).doit()
+    tensorRed: sp.Array = tensor.applyfunc(lambda x:
+        #sp.limit(sp.series(x, evB, evA, multMax), evB, evA).doit()
+        sp.limit(sp.series(x.subs(evB, evA+eps), eps, 0, multMax).subs(evB, evA).simplify(), eps, 0)
+      ).doit()
+    
+    #sp.limit(sp.series((f(y)-f(x))/(y-x), y, x, n=3), y, x).doit()
+    if fTensor.shape[0] < multMax:
+      fTensor = sp.Array([fVec.applyfunc(lambda q: q.diff(*q.args, i)) for i in range(multMax)])
+    fTensor1: sp.Array = sp.Array([
+        [
+          [
+            t.subs(fTensor[q, l], 1).subs([(fev, 0) for fev in fTensor[0]]).doit()
+          for q in range(multMax)]
+        for l in list(range(iB))+list(range(iB+1, len(self.multiplicity)))]
+      for t in tensorRed]).subs(subL1).subs(subL2)
+    if len(mult) == 1:
+      fTensor1 = fTensor1.subs(sp.var('\\lambda_1'), sp.var('\\lambda'))
+    return fTensor1
+    
+
   def __repr__(self) -> str:
     evs = ', '.join(map(str, self.multiplicity))
     return f'SymKrylov[ var: {self.mVar}, multiplicity: ({evs}) ]' if evs else 'SymKrylov[]'
@@ -250,4 +282,48 @@ class SymKrylovSpace:
     return f'SymKrylov[ var: ${self.mVar}$, eigvals: ${evs}$ ]' if evs else 'SymKrylov[]'
 
 
+c = SymKrylovSpaceCache()
+sk12 = c[2,1]#c[1,2]
+sk3 = c[3]#c[3]
+# fcRed = sk12.reduceFunctionCoeffs(*np.array(sk12.eigvals)[[0,1]])
+# fc = c[3].funcCoeffs
+# diff = (fcRed - fc).simplify()
+# pass
+
+###########################
+ev1, ev2 = sk12.eigvals
+iA, iB = [i for i,ev in enumerate(sk12.eigvals) if ev in [ev1, ev2]]
+auxvars = sp.var(f'\\lambda_1:{len(sk12.eigvals) + 1}^{{(tmp)}}')
+evA = sk12.eigvals[iA]
+evB = sk12.eigvals[iB]
+subL1 = list(zip(sk12.eigvals[iB+1:], auxvars[iB+1:]))
+subL2 = list(zip(auxvars[iB+1:], sk12.eigvals[iB:-1]))
+mult = np.append(sk12.multiplicity[:iB], sk12.multiplicity[iB+1:])
+mult[iA] += sk12.multiplicity[iB]
+multMax = mult.max()
+
+f = sp.Function('f')
+eps = sp.var('\\epsilon')
+fVec = sp.Array(sk12.eigvals).applyfunc(f)
+funcCoeffs = sk12.funcCoeffs
+fTensor = sp.Array([fVec.applyfunc(lambda q: q.diff(*q.args, i)) for i in range(funcCoeffs.shape[2])])
+tensor = sp.Array(np.tensordot(funcCoeffs, fTensor, ((1,2), (1,0))))
+#tensorRed: sp.Array = tensor.applyfunc(lambda x: sp.limit(x, evB, evA)).doit()
+tensorRed: sp.Array = tensor.applyfunc(lambda x:
+    #sp.limit(sp.series(x, evB, evA, multMax), evB, evA).doit()
+    sp.limit(sp.series(x.subs(evB, evA+eps), eps, 0, multMax).subs(evB, evA).simplify(), eps, 0)
+  ).doit()
+
+#sp.limit(sp.series((f(y)-f(x))/(y-x), y, x, n=3), y, x).doit()
+if fTensor.shape[0] < multMax:
+  fTensor = sp.Array([fVec.applyfunc(lambda q: q.diff(*q.args, i)) for i in range(multMax)])
+fTensor1: sp.Array = sp.Array([
+    [
+      [
+        t.subs(fTensor[q, l], 1).subs([(fev, 0) for fev in fTensor[0]]).doit()
+      for q in range(multMax)]
+    for l in list(range(iB))+list(range(iB+1, len(sk12.multiplicity)))]
+  for t in tensorRed]).subs(subL1).subs(subL2)
+if len(mult) == 1:
+  fTensor1 = fTensor1.subs(sp.var('\\lambda_1'), sp.var('\\lambda'))
 
