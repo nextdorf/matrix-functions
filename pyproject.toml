@@ -14,7 +14,7 @@ name = "matrixfuncs"
 dynamic = ["version"]
 description = "Provides classes for calculating with krylov spaces and matrix functions"
 readme = "README.md"
-requires-python = ">=3.5"
+requires-python = ">=3.10"
 keywords = ["krylov", "matrix", "function"]
 license = {text = "GPL-3.0-only"}
 classifiers = [
