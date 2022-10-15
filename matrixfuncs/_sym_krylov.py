@@ -1,7 +1,6 @@
 import numpy as np
 import sympy as sp
-from .utils import IndexPermutation, Permutation
-#from utils import IndexPermutation, Permutation
+from .utils import IndexPermutation, Permutation, differentialLimit
 from scipy.special import comb
 from numpy.typing import NDArray
 from joblib import delayed, Parallel, cpu_count
@@ -253,13 +252,9 @@ class SymKrylovSpace:
     funcCoeffs = self.funcCoeffs
     fTensor = sp.Array([fVec.applyfunc(lambda q: q.diff(*q.args, i)) for i in range(funcCoeffs.shape[2])])
     tensor = sp.Array(np.tensordot(funcCoeffs, fTensor, ((1,2), (1,0))))
-    #tensorRed: sp.Array = tensor.applyfunc(lambda x: sp.limit(x, evB, evA)).doit()
     tensorRed: sp.Array = tensor.applyfunc(lambda x:
-        #sp.limit(sp.series(x, evB, evA, multMax), evB, evA).doit()
-        sp.limit(sp.series(x.subs(evB, evA+eps), eps, 0, multMax).subs(evB, evA).simplify(), eps, 0)
-      ).doit()
+      differentialLimit(x, evB, evA, multMax))
     
-    #sp.limit(sp.series((f(y)-f(x))/(y-x), y, x, n=3), y, x).doit()
     if fTensor.shape[0] < multMax:
       fTensor = sp.Array([fVec.applyfunc(lambda q: q.diff(*q.args, i)) for i in range(multMax)])
     fTensor1: sp.Array = sp.Array([
@@ -282,48 +277,4 @@ class SymKrylovSpace:
     return f'SymKrylov[ var: ${self.mVar}$, eigvals: ${evs}$ ]' if evs else 'SymKrylov[]'
 
 
-c = SymKrylovSpaceCache()
-sk12 = c[2,1]#c[1,2]
-sk3 = c[3]#c[3]
-# fcRed = sk12.reduceFunctionCoeffs(*np.array(sk12.eigvals)[[0,1]])
-# fc = c[3].funcCoeffs
-# diff = (fcRed - fc).simplify()
-# pass
-
-###########################
-ev1, ev2 = sk12.eigvals
-iA, iB = [i for i,ev in enumerate(sk12.eigvals) if ev in [ev1, ev2]]
-auxvars = sp.var(f'\\lambda_1:{len(sk12.eigvals) + 1}^{{(tmp)}}')
-evA = sk12.eigvals[iA]
-evB = sk12.eigvals[iB]
-subL1 = list(zip(sk12.eigvals[iB+1:], auxvars[iB+1:]))
-subL2 = list(zip(auxvars[iB+1:], sk12.eigvals[iB:-1]))
-mult = np.append(sk12.multiplicity[:iB], sk12.multiplicity[iB+1:])
-mult[iA] += sk12.multiplicity[iB]
-multMax = mult.max()
-
-f = sp.Function('f')
-eps = sp.var('\\epsilon')
-fVec = sp.Array(sk12.eigvals).applyfunc(f)
-funcCoeffs = sk12.funcCoeffs
-fTensor = sp.Array([fVec.applyfunc(lambda q: q.diff(*q.args, i)) for i in range(funcCoeffs.shape[2])])
-tensor = sp.Array(np.tensordot(funcCoeffs, fTensor, ((1,2), (1,0))))
-#tensorRed: sp.Array = tensor.applyfunc(lambda x: sp.limit(x, evB, evA)).doit()
-tensorRed: sp.Array = tensor.applyfunc(lambda x:
-    #sp.limit(sp.series(x, evB, evA, multMax), evB, evA).doit()
-    sp.limit(sp.series(x.subs(evB, evA+eps), eps, 0, multMax).subs(evB, evA).simplify(), eps, 0)
-  ).doit()
-
-#sp.limit(sp.series((f(y)-f(x))/(y-x), y, x, n=3), y, x).doit()
-if fTensor.shape[0] < multMax:
-  fTensor = sp.Array([fVec.applyfunc(lambda q: q.diff(*q.args, i)) for i in range(multMax)])
-fTensor1: sp.Array = sp.Array([
-    [
-      [
-        t.subs(fTensor[q, l], 1).subs([(fev, 0) for fev in fTensor[0]]).doit()
-      for q in range(multMax)]
-    for l in list(range(iB))+list(range(iB+1, len(sk12.multiplicity)))]
-  for t in tensorRed]).subs(subL1).subs(subL2)
-if len(mult) == 1:
-  fTensor1 = fTensor1.subs(sp.var('\\lambda_1'), sp.var('\\lambda'))
 

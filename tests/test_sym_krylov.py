@@ -16,20 +16,20 @@ def assertSymKrylovSpaceEquality(sk1, sk2):
 class TestSymKrylovSpace:
   cache = SymKrylovSpaceCache()
 
-  # @pytest.mark.parametrize('multiplicity', [[1], [1,2], [2,1], [1,3,2], [3,2,1], [1,2,3]])
-  # def test_cache(self, multiplicity):
-  #   sk = SymKrylovSpace(multiplicity)
-  #   csk = TestSymKrylovSpace.cache[multiplicity]
-  #   assertSymKrylovSpaceEquality(sk, csk)
+  @pytest.mark.parametrize('multiplicity', [[1], [1,2], [2,1], [1,3,2], [3,2,1], [1,2,3]])
+  def test_cache(self, multiplicity):
+    sk = SymKrylovSpace(multiplicity)
+    csk = TestSymKrylovSpace.cache[multiplicity]
+    assertSymKrylovSpaceEquality(sk, csk)
 
-  @pytest.mark.parametrize('multiplicity', [[1], [1,2], [2,1]])#, [[1], [1,2], [2,1], [1,3,2], [3,2,1], [1,2,3]])
-  def test_dimensionReduction(self, multiplicity):
+  @pytest.mark.parametrize('multiplicity', [[1], [1,2], [2,1], [3,2], [4,1]])#, [2,1,1]])
+  def test_dimensionReduction(self, multiplicity: list[int]):
     sk = TestSymKrylovSpace.cache[multiplicity]
     for i,_ in enumerate(multiplicity):
       fcRed = sk.reduceFunctionCoeffs(*np.array(sk.eigvals)[[i, i]])
       assertSympyEquality(sk.funcCoeffs, fcRed, repr((i, i)))
       for j,_ in list(enumerate(multiplicity))[i+1:]:
-        multIJ = multiplicity[:i]+[i+j]+multiplicity[i+1:j]+multiplicity[j+1:]
+        multIJ = multiplicity[:i]+[multiplicity[i]+multiplicity[j]]+multiplicity[i+1:j]+multiplicity[j+1:]
         fcij = TestSymKrylovSpace.cache[multIJ].funcCoeffs
         fcRedij = sk.reduceFunctionCoeffs(*np.array(sk.eigvals)[[i, j]])
         assertSympyEquality(fcij, fcRedij, repr((i, j)))
