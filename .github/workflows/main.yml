@@ -34,7 +34,8 @@ jobs:
         run: |
           pip install --upgrade tox pytest
           TESTVERSION=${{ matrix.python-version }}
-          TESTVERSION=py3${TESTVERSION:2}
+          TESTVERSION_BK=py3${TESTVERSION:2}
+          TESTVERSION=$(python -c "s='$TESTVERSION'; print('py3'+s[2:].split('-')[0])")
           tox -e $TESTVERSION
 
   build:
