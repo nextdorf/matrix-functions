@@ -5,7 +5,13 @@
 #show: minimal-document.with(
   title: "Documentation for Matrixfuncs",
   authors: (
-    (name: "Nextdorf", subtitle: link("https://github.com/nextdorf/matrixfuncs")[matrixfuncs\@github.com],),
+    (
+      name: "Nextdorf",
+      // subtitle: link("https://github.com/nextdorf/matrix-functions")[matrixfuncs\@github.com],  
+      subtitle: link("https://github.com/nextdorf/matrix-functions")[
+        #grid(columns: (auto, auto, auto), rows: 0pt, align: alignment.bottom, [matrixfuncs\@ #h(.05em)], [], [#figure(image("github-logo.png", height: .9em))])
+      ],
+    ),
   ),
   // Insert your abstract after the colon, wrapped in brackets.
   // Example: `abstract: [This is my abstract...]`
@@ -19,30 +25,31 @@
 
 = Mathematical background
 == 2 dimensional case
-The Cayley-Hamilton theorem states for $A in CC^(n times n): p_A (A)=0$\
+The Cayley-Hamilton theorem states that any square matrix $A in CC^(n times n)$ satisfies its own characteristic equation. If $p_A (lambda)=det(lambda bb(1) - A)$ is the characteristic polynomial of $A$, then substituting $A$ into it results in $p_A (A)=0$.
+
 For $n=2$:
 
 #eq[
-$p_A (lambda)=&det(lambda bb(1)-A)=(lambda-lambda_1)(lambda-lambda_2)=lambda^2-lambda tr A+det A$
+$p_A (lambda)=det(lambda bb(1)-A)=(lambda-lambda_1)(lambda-lambda_2)=lambda^2-lambda tr A+det A$
 
-$=> A^2=&A tr A-bb(1)det A$
+$=> A^2=A tr A-bb(1)det A$
 ]
-So $A^2$ is a linear combination of $A$ and $bb(1)$. By complete induction it follows that $A^n$ is also such a linear combination of $A$ and $bb(1)$ for any $n in NN_0$:
+So $A^2$ is a linear combination of $A$ and $bb(1)$. By multiplication with $A$ we find, that $A^3$ is a linear combination of $A^2$ and $A$ which reduces according to the above relation to a linear combination of $A$ and $bb(1)$. By repeatedly  multiplying with $A$, we find equivalent results for $A^4$, $A^5$, ..., as well. By complete induction it follows that $A^n$ is also such a linear combination of $A$ and $bb(1)$ for any $n in NN_0$ (the base case of $n=0, 1$ is trivial):
 
 $
   A^n =: a_n A+b_n bb(1), quad A^(n+1)=(a_n tr A+b_n)A-(a_n det A)bb(1)
 $
 $
-  a_(n+1) = a_n tr A+b_n, quad b_(n+1)=-a_n det A, quad a_0=0, quad a_1=1, quad b_0=1, quad b_1=0 
+  a_(n+1) = a_n tr A+b_n, quad b_(n+1)=-a_n det A,\ quad a_0=0, quad a_1=1, quad b_0=1, quad b_1=0 
 $ <recurrent-2dim>
 
-In order to solve the recurrence equation we use a shifting operator $Delta$ for $a_n$, s.t. $a_(n+1) = Delta a_n$
+In order to solve the recurrence equation we use a shift operator $Delta$ for $a_n$, s.t. $a_(n+1) = Delta a_n$
 
 $
   0=(Delta^2-Delta tr A+det A)a_n=p_A (Delta)a_n=(Delta-lambda_1)(Delta-lambda_2)a_n
 $
 
-As an Ansatz we choose $a_n$ as a linear combination of the solutions of $0=(Delta-lambda_1)a_n$ and $0=(Delta-lambda_2)a_n$. In general this ansatz only works if $lambda_1 != lambda_2$. We will consider the case $lambda_1 = lambda_2$ again in the end of this section and in @ch-math-general-case:
+As an Ansatz we choose $a_n$ as a linear combination of the solutions of $0=(Delta-lambda_1)a_n$ and $0=(Delta-lambda_2)a_n$. We are motivated to pick this Ansatz because clearly any solution to $0=(Delta-lambda_(1 #[ or ] 2))a_n$ solves the above equation and the $Delta^2$ hints at a 2-dimensional solution-space. In addition the problem is linear. This approach assumes distinct eigenvalues $lambda_1, lambda_2$. When the eigenvalues coincide, additional techniques are required, which will be discussed at the end of this section and in @ch-math-general-case:
 
 $
   a_n = c_1 lambda_1^n +c_2 lambda_2^n
@@ -52,35 +59,35 @@ As the base case for induction, we consider the trivial cases $n=0$ and $n=1$:
 #eq(numberlast: true)[
   $  a_0 =& c_1+c_2=0, quad a_1 = c_1 lambda_1 + c_2 lambda c_2 = 1$
   $=> c_2 =& -c_1, quad c_1(lambda_1-lambda_2) = 1$
-  $=> c_2 =& -c_1, quad c_1(lambda_1-lambda_2) = 1$
+  $=> c_1 =& 1/(lambda_1-lambda_2), quad c_2 = (-1)/(lambda_1-lambda_2)$
 ]
 
-We found the solutions for $a_n$:
+Thus, the explicit closed-form solutions for $a_n$ and $b_n$ are:
 
 $
   a_n = (lambda_1^n-lambda_2^n)/(lambda_1-lambda_2), quad b_n ouset(=,#ref(<recurrent-2dim>)) -(lambda_2lambda_1^n - lambda_1lambda_2^n)/(lambda_1 - lambda_2)
 $
 
-and thereby the linear combination of $A^n$:
+Thus, we obtain the explicit linear combination representation of $A^n$:
 
 $
   A^n = (lambda_1^n-lambda_2^n)/(lambda_1-lambda_2)A -(lambda_2lambda_1^n - lambda_1lambda_2^n)/(lambda_1 - lambda_2)bb(1)
 $
 
-Since $A^n$ is linear in $lambda_i^n$ we know how to evaluate arbitrary polynomials of $A$ in the Krylov space. Let $q(x)$ be a polynomial:
+Since $A^n$ is linear in $lambda_i^n$ we know how to evaluate arbitrary polynomials of $A$. Let $q(x)$ be a polynomial:
 
 $
   q(A) = 1/(lambda_1-lambda_2)[(q(lambda_1) - q(lambda_2))A - (lambda_2 q(lambda_1) - lambda_1 q(lambda_2))bb(1)]
 $
 
-Since the coefficients only depend on $p(lambda_i)$ the formula can be generalized to all functions which are analytical in $lambda_1$ and $lambda_2$. Let $f(x)$ be a analytical in the eigenvalues of $A$:
+Since the coefficients only depend on $q(lambda_i)$ the formula can be generalized to all functions which are analytic in $lambda_1$ and $lambda_2$. Let $f(x)$ be a analytic in the eigenvalues of $A$:
 
 $
   f(A) = 1/(lambda_1-lambda_2)[(f(lambda_1) - f(lambda_2))A - (lambda_2 f(lambda_1) - lambda_1 f(lambda_2))bb(1)]
 $ <func-2dim>
-The generalization of @func-2dim is the core of this package. The important properties are that it yields the result to arbitrary precision in constant time and that the application of $f$ commutes with any linear function applied to the Krylov space. With other words this means there exists a rank-3 tensor $F$, which only depends on $A$, s.t. $f(A)_(i j) = F_(i j k) f(lambda_k)$.
+The generalization of @func-2dim is the core of this package. The important properties are that it allows efficient computation of $f(A)$ with arbitrary precision and that the application of $f$ commutes with any linear function applied on the vector space. With other words this means there exists a rank-3 tensor $F$, which only depends on $A$, s.t. $f(A)_(i j) = F_(i j k) f(lambda_k)$.
 
-Since $f(A)$ is continuous in the eigenvalues and the set of square matrices with unequal eigenvalues is dense in the set of all square matrices, we can just consider the limit of $lambda_1 -> lambda_2$ to calculate the case $lambda_1 = lambda_2$:
+Since $f(A)$ is continuous in the eigenvalues and the set of square matrices with distinct eigenvalues is dense, we evaluate $f(A)$ for equal eigenvalues using a limiting process:
 
 #eq(numberlast: true)[
   $f(A | lambda_1& = lambda + epsilon, lambda_2 = lambda) = 1/epsilon [epsilon f'(lambda)A - epsilon(lambda f'(lambda) - f(lambda))bb(1)] + o(epsilon)$
@@ -91,20 +98,24 @@ Since $f(A)$ is continuous in the eigenvalues and the set of square matrices wit
 So when $A$ is not diagonal $f(A)$ depends on $f'(lambda)$. In general we will find that $f(A)$ depends on $f(lambda_i), f'(lambda_i), ..., f^((m))(lambda_i)$ where $m$ is the difference of the algebraic and geometric multiplicity of $lambda_i$.
 
 
-== Examples for 2 dimensions
+== Applications and Examples in 2 dimensions
+=== Comparison to Jordan form approach
+...
+=== Relation to Krylov subspaces <ch-krylov>
+...
 === Generating $sin x$ from a difference equation
 
-There are many applications and possible use cases for matrix functions, but the main application this package is written for are difference equations. Assuming you want to consider a sequence of vectors $(v_i)_(i=0)^inf subset FF^n$ which satisfies $v_(i+1) = M v_i$ for some matrix $M in FF^(n times n)$. An obvious conclusion is $v_k = M^k v_0$. With equations @func-2dim or @func-2dim-1eigval we can express $M^k$ without any matrix multiplications. Instead with just apply $f(lambda) = lambda^k$ to all eigenvalues. We even can apply $v_0$ or any other tensor contraction to $f(M)$ before we specify $k$. Calculating these things beforehand can speedup the total calculation if we need to calculate $v_k$ for many different $k$.
+Matrix functions have many applications, but the primary focus of this package is solving difference equations. Assuming you want to consider a multi-dimensional first-order linear recurrence, i.e. a sequence of vectors $(v_i)_(i=0)^infinity subset FF^n$ satisfying the recurrence relation $v_(i+1) = M v_i$ for some matrix $M in FF^(n times n)$. An obvious conclusion is $v_k = M^k v_0$. Using equations @func-2dim or @func-2dim-1eigval, we can express $M^k$ without any matrix multiplications. Instead we just need to compute $f(lambda) = lambda^k$ for all eigenvalues. As discussed in @ch-krylov, we can precompute $f(M)v_0$ or any other tensor contraction to $f(M)$ before we specify $k$, allowing for efficient evaluation for different or delayed values of $k$.
 
-Another neat application is the analytical continuation of $v_k$ in $k$ by setting $f(lambda) = e^(k ln(lambda))$. We will use this in the example here by solving a difference equation for a sampled $sin$ function and then evaluating the numerically solved $sin$ between the sampled points.
+Another neat application is the analytic continuation of $v_k$ in $k$ by setting $f(lambda) = e^(k ln(lambda))$, allowing for non-integer shifts. We apply this method in the example here by solving a difference equation for a sampled $sin$ function and then evaluating the numerically solved $sin$ between the sampled points.
 
-Consider the sum identity of $sin$:
+For the setup of the difference equation, consider the sum identity of $sin$:
 
 $
   sin(x+a) = sin(x)cos(a) + cos(x)sin(a)
 $ <sin-ab>
 
-For fixed $a$ $sin(x+a)$ can be expressed as a linear combination of the basis $sin x$ and $cos b$. Therefore $sin x$ can be written as a linear combination of $sin(x+a)$ and $sin(x+2a)$ for almost all $a$:
+For fixed $a$ $sin(x+a)$ can be expressed as a linear combination of the basis $sin x$ and $cos x$. As shown in the following derivation, $sin x$ can be written as a linear combination of $sin(x+a)$ and $sin(x+2a)$ for almost all $a$:
 
 #eq(numberlast: none)[
   $sin(x) =:& alpha sin(x+a) + beta sin(x+2a)$
@@ -115,7 +126,7 @@ For fixed $a$ $sin(x+a)$ can be expressed as a linear combination of the basis $
   $ouset(=, #ref(<sin-ab>), &) vec(2cos(a), -1)$
 ]
 
-From this we can construct a difference equation which shifts $sin$ by $a$.
+From this we can construct a difference equation which shifts $sin x$ by $a$.
 
 #eq(numberlast: true)[
   $vec(sin x, sin(x-a)) =& underbrace(mat(2cos a, -1; 1, 0), =: M(a)) vec(sin(x-a), sin(x-2a))$
@@ -124,7 +135,7 @@ From this we can construct a difference equation which shifts $sin$ by $a$.
   $=> sin(x+y) =& hat(e)_1 dot exp(y/a ln(M(a))) vec(sin x, sin(x-a))$
 ]
 
-We can now use the formula for two dimensions @func-2dim in order to solve for $sin(x+y)$:
+Applying the 2D recurrence formula from @func-2dim, we compute $sin(x+y)$ as follows:
 
 
 $
@@ -138,7 +149,7 @@ $ <sin-ab-numerical>
   $=& e^(plus.minus i a)$
   $#[s.t. ] f(lambda_(1,2)) =&e^(plus.minus i y)$
 ]
-Simplifying @sin-ab-numerical will yield @sin-ab.
+Simplifying @sin-ab-numerical yields @sin-ab.
 
 
 == General case <ch-math-general-case>
@@ -160,29 +171,29 @@ The recurrence equation @recurrent-ndim can be solved by noticing that all $alph
   $alpha_(m,n-1) =& sum_(k=1)^(n-1)alpha_(m-k,n-1)Lambda_(n-k) + alpha_(m+1-n, 0)$
   $=& sum_(k=1)^n alpha_(m-k,n-1)Lambda_(n-k)$
   $=& sum_(k=0)^(n-1) alpha_(m-n+k,n-1)Lambda_k$
-  $=> 0=& alpha_(m+n, n-1) - sum_(k=0)^(n-1) alpha_(m-k,n-1)Lambda_k$
+  $=> 0=& alpha_(m+n, n-1) - sum_(k=0)^(n-1) alpha_(m+k,n-1)Lambda_k$
   $=& (Delta^n - sum_(k=0)^(n-1) Delta^k Lambda_k) alpha_(m, n-1) wide #[with ] Delta alpha_(m k) = alpha_(m+1, k)$
   $=& p_A (Delta) alpha_(m, n-1)$
   $=& product_(k=1)^r (Delta - lambda_k)^(mu_k) alpha_(m, n-1)\ &#[with $mu_k$ being the algebraic multiplicity of $lambda_k$]$
 ]
 
-The general solution is $alpha_(m, n-1) = sum_(k=1)^r lambda_k^m p_k (m)$ with $p_k$ being a polynomial of degree $mu_(k-1)$.
+The general solution is $alpha_(m, n-1) = sum_(k=1)^r lambda_k^m p_k (m)$ with $p_k$ being an arbitrary polynomial of degree $mu_k-1$.
 
 Proof:
 
 #eq(numberlast: none)[
-  $#[Induction Start: ] 0 =& (Delta - lambda)c_n => lambda c_(n-1) = lambda^n c_0$
+  $#[Induction Start: ] 0 =& (Delta - lambda)c_n => c_n =lambda c_(n-1) = lambda^n c_0$
   $#[Assume ] 0 =& (Delta - lambda)^m lambda^n sum_(k=0)^(m-1) c_k n^k quad forall c_0, ..., c_(m-1)$
-  $=> (Delta - lambda)^(m-1) lambda^n sum_(k=0)^m c_k n^k =& (Delta - lambda)^m (Delta - lambda) lambda^n c_m n^m + (Delta - lambda)(Delta - lambda)^m lambda^n sum_(k=0)^(m-1) c_k n^k$
+  $=> (Delta - lambda)^(m+1) lambda^n sum_(k=0)^m c_k n^k =& (Delta - lambda)^m (Delta - lambda) lambda^n c_m n^m + (Delta - lambda)(Delta - lambda)^m lambda^n sum_(k=0)^(m-1) c_k n^k$
   $=& (Delta - lambda)^m ((n+1)^m - n^m) lambda^(n+1) c_m$
   $=& (Delta - lambda)^m lambda^n sum_(k=0)^(m-1) binom(m, k) lambda c_m n^k$
   $=& 0$
   $=> 0 =& (Delta - lambda)^m lambda^n sum_(k=0)^m' c_k n^k quad forall c_0, ..., c_(m'-1), m > m'$
 ]
 
-Now consider $overline(c) = (Delta - lambda) c_n => c_(n+1) = overline(c) + lambda c_n = sum_(k=0)^n lambda^k overline(c)_(n-k) + lambda^(n+1) c_0$
+Now consider $overline(c)_n = (Delta - lambda) c_n => c_(n+1) = overline(c)_n + lambda c_n = sum_(k=0)^n lambda^k overline(c)_(n-k) + lambda^(n+1) c_0$
 
-Since the solution of $c_n$ is linear in $overline(c)_n$ we can consider the dimension of the solution space if $overline(c)_n$ is itself a solution of a similar equation. The solution space of $0 = (Delta - lambda_1) c_n^((1))$ is 1-dimensional. Therefore the solution space of $c_n^((m)) = (Delta - lambda_1) c_n^((m+1))$ is either of the same dimension as the solution space of $c_n^((m))$ or the dimension increases by 1. So the dimension of the solution space of $p_A (Delta) alpha_(m, n-1)$ is at most $n$. Since $sum_{k=1}^r lambda_k^m p_k(m)$ is a $sum_(k=1)^r dim(p_k) = n$ dimensional solution it is the general solution.
+Since the solution of $c_(n+1)$ is linear in $overline(c)_n$ we can consider the dimension of the solution space if $overline(c)_n$ is itself a solution of a similar equation. The solution space of $0 = (Delta - lambda_1) c_n^((1))$ is 1-dimensional. Therefore the solution space of $c_n^((m)) = (Delta - lambda_1) c_n^((m+1))$ is either of the same dimension as the solution space of $c_n^((m))$ or the dimension increases by 1. So the dimension of the solution space of $p_A (Delta) alpha_(m, n-1)$ is at most $n$. Since $sum_(k=1)^r lambda_k^m p_k(m)$ is a $sum_(k=1)^r dim(p_k) = n$ dimensional solution it is the general solution.
 
 #place(right, $qed$)
 \ 
@@ -203,15 +214,15 @@ For $m<n: alpha_(m k) = delta_(m k) => delta_(m,n-1) = beta_k lambda_k^((m))$
 @recurrent-ndim yields for $alpha_(m k)$:
 
 $
-  alpha_(m k) = sum_(j=1)^(k+1) alpha_(m-j, n-1) Lambda_(k+1-j) = sum_(j=1)^(k+1) arrow(beta) dot arrow(lambda)^((n-1)) Lambda_(k+1-j)
+  alpha_(m k) = sum_(j=1)^(k+1) alpha_(m-j, n-1) Lambda_(k+1-j) = sum_(j=1)^(k+1) arrow(beta) dot arrow(lambda)^((m-j)) Lambda_(k+1-j)
 $
 
-As in the two dimensional case this defines $f(A)$ if $f$ is analytical in the eigenvalues of $A$. If none of the eigenvalues is $0$:
+As in the two dimensional case this defines $f(A)$ if $f$ is analytic in the eigenvalues of $A$. If none of the eigenvalues is $0$:
 
 #eq[
   $A^m =& sum_(k=0) A^k sum_(j=1)^(k+1) Lambda_(k+1-j) sum_(l=1)^r sum_(p=0)^(min(mu_l-1, m-j)) overline(beta)_(l p) lambda_l^(m-j-p) (m-j)!/((m-j-p)!)$
   #nonumber($f(A) =& sum_(k=0) A^k sum_(j=1)^(k+1) Lambda_(k+1-j) sum_(l=1)^r sum_(p=0)^(mu_l-1) overline(beta)_(l p) partial_(lambda_l)^p lambda_l^(-j) f(lambda_l)$)
-  $f(A) =& sum_(k=0) A^k sum_(j=1)^(k+1) Lambda_(k+1-j) sum_(l=1)^r sum_(p=0)^(mu_l-1) overline(beta)_(l p) sum_(q=0)^p binom(p, q) (-1)^(p-q) (j-1+p-q)!/((j-1)!) lambda_l^(-j-p+q) f^((q))(lambda_l)$
+  $=& sum_(k=0) A^k sum_(j=1)^(k+1) Lambda_(k+1-j) sum_(l=1)^r sum_(p=0)^(mu_l-1) overline(beta)_(l p) sum_(q=0)^p binom(p, q) (-1)^(p-q) (j-1+p-q)!/((j-1)!) lambda_l^(-j-p+q) f^((q))(lambda_l)$
 ]
 
 Since $f(A)$ is linear in $A^k$ and $f^((q))(lambda_l)$ we can define the tensors $phi$ and $phi.alt$, s.t.
