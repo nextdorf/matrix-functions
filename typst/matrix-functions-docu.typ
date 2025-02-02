@@ -9,7 +9,7 @@
       name: "Nextdorf",
       // subtitle: link("https://github.com/nextdorf/matrix-functions")[matrixfuncs\@github.com],  
       subtitle: link("https://github.com/nextdorf/matrix-functions")[
-        #grid(columns: (auto, auto, auto), rows: 0pt, align: alignment.bottom, [matrixfuncs\@ #h(.05em)], [], [#figure(image("github-logo.png", height: .9em))])
+        #grid(columns: (auto, auto, auto), rows: 0pt, align: alignment.bottom, [matrixfuncs\@ #h(.05em)], [], [#figure(image("github-logo.svg", height: .9em))])
       ],
     ),
   ),
