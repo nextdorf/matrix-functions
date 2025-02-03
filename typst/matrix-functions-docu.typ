@@ -159,13 +159,18 @@ Similarly to the 2d-case we use the Cayley-Hamilton-theorem: $A in CC^(n times n
 #eq[
   #nonumber($p_A (lambda) =& det(lambda bb(1) - A) = product_(k=1)^n (lambda - lambda_k) =: lambda^n - sum_(k=0)^(n-1) Lambda_k lambda^k$)
   $=> Lambda_k =& sum_(j_1...j_(n-k)=1,\ j_1<...<j_(n-k))^n (-1)^(n-k+1) product_(i=1)^(n-k) lambda_(j_i)$
-  #nonumber($A^n =& sum_(k=0)^(n-1) Lambda_k A^k$)
-  $A^m =:& sum_(k=0)^(n-1) alpha_(m k) A^k$
+  $A^n =& sum_(k=0)^(n-1) Lambda_k A^k$ <matrix-power-lin-n>
+  $A^m =:& sum_(k=0)^(n-1) alpha_(m k) A^k$ <matrix-power-lin-ansatz>
+]
+
+As before we multiply equation @matrix-power-lin-ansatz with $A$ which will generate an $A^n$ on the rhs. That generated term is substituted using @matrix-power-lin-n, resulting in a recurrence relation for $alpha_(m k)$:
+
+#eq[
   #nonumber($A^(m+1) =& sum_(k=1)^(n-1)(alpha_(m,k-1) + alpha_(m, n-1) Lambda_k)A^k + alpha_(m, n-1) Lambda_0 A^0$)
   $=> alpha_(m+1, 0) =& alpha_(m,n-1) Lambda_0, quad alpha_(m+1, k) = alpha_(m, k-1) + alpha_(m, n-1) Lambda_k$ <recurrent-ndim>
 ]
 
-The recurrence equation @recurrent-ndim can be solved by noticing that all $alpha_(m, n-1)$ can be reduced to a function of $alpha_(m-1, n-1), alpha_(m-2, n-1), ...$
+In order to solve the recurrence equation @recurrent-ndim, note that $alpha_(m k)$ can be expressed in terms of $alpha_(m-1, k-1)$ and $alpha_(m-1, n-1)$. $alpha_(m-1, k-1)$ can be further expressed in terms of $alpha_(m-2, k-2)$ and $alpha_(m-2, n-1)$, and so forth, until eventually $alpha_(m-k, 0)$ can be expressed in terms of $alpha_(m-k-1, n-1)$. Hence, the recurrence equation @recurrent-ndim can be solved by noticing that all $alpha_(m, n-1)$ can be reduced to a function of $alpha_(m-1, n-1), alpha_(m-2, n-1), ...$. Thus, we can simplify the recurrence relation to a recurrence relation in the first argument only and fixing the second argument to $n-1$:
 
 #eq(numberlast: true)[
   $alpha_(m,n-1) =& sum_(k=1)^(n-1)alpha_(m-k,n-1)Lambda_(n-k) + alpha_(m+1-n, 0)$
@@ -207,8 +212,7 @@ For $m<n: alpha_(m k) = delta_(m k) => delta_(m,n-1) = beta_k lambda_k^((m))$
 
 #eq(numberlast: true)[
   $arrow(beta) perp& sum_(k=1)^n hat(e)_k lambda_k^m =: arrow(lambda)^((m)) #[ for ] m = 0 ... n-2$
-  $tilde(beta)_k :=& det(hat(e)_k | arrow(lambda)^((n-2)) | arrow(lambda)^((n-3)) | ... | arrow(lambda)^((0)))$
-  $beta =& tilde(beta) / (tilde(beta) dot arrow(lambda)^((n-1)))$
+  $=> beta_k =& det(hat(e)_k | arrow(lambda)^((n-2)) | arrow(lambda)^((n-3)) | ... | arrow(lambda)^((0))) / det(arrow(lambda)^((n-1)) | ... | arrow(lambda)^((0)))$
 ]
 
 @recurrent-ndim yields for $alpha_(m k)$:
@@ -258,4 +262,14 @@ $
   ])
 ])
 
+// == Vector space properties
+// #let sdot(dual, vec) = $angle.l dual, vec angle.r$
+// Scalar product:
+// $
+//   sdot(A, B) = 1/n tr(A^dagger B), quad norm(A) = sqrt(sdot(A, A))
+// $
+// ONS:
+// $
+//   N_0 = bb(1), quad N_(k+1) = (A N_k - sum_(j=0)^k N_j sdot(N_j, A N_k))/norm(A N_k - sum_(j=0)^k N_j sdot(N_j, A N_k))
+// $
 

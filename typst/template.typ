@@ -34,6 +34,7 @@
       it
     }
   }
+
   // Set run-in subheadings, starting at level 4.
   show heading: it => {
     // H1 and H2
@@ -89,7 +90,14 @@
   // align(center)[#date]
 
   // Table of Contents.
-  outline()
+  show outline.entry: it => {
+    if it.level <= 2 {
+      it = strong(it)
+    }
+    set text(refcol)
+    it
+  }
+  outline(indent: auto)
 
   // Abstract.
   if abstract != [] {    
