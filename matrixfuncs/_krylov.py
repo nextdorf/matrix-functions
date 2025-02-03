@@ -204,7 +204,7 @@ class KrylovSpace:
       M = self.M,
       Eigvals = self.eigvals,
       Basis = self.basis,
-      Beta0 = KrylovSpace.Beta0(self.eigvals),
+      Beta0 = KrylovSpace.Beta0(eigvals=self.eigvals),
       Beta = self.beta,
       Lambda = self.lambdaCoeffs, 
       Coeffs = self.funcCoeffs,
