@@ -1,5 +1,7 @@
 import numpy as np
+from warnings import deprecated
 
+@deprecated('KrylovSpace is deprecated, use MSpace instead')
 class KrylovSpace:
   '''Calculates various objects related to the krylov space of some square matrix. (Only works if all eigenvalues are different atm.)
 
