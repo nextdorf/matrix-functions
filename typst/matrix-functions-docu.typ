@@ -210,10 +210,44 @@ Since the solution of $c_(n+1)$ is linear in $overline(c)_n$ we can consider the
 
 For $m<n: alpha_(m k) = delta_(m k) => delta_(m,n-1) = beta_k lambda_k^((m))$
 
-#eq(numberlast: true)[
-  $arrow(beta) perp& sum_(k=1)^n hat(e)_k lambda_k^m =: arrow(lambda)^((m)) #[ for ] m = 0 ... n-2$
-  $=> beta_k =& det(hat(e)_k | arrow(lambda)^((n-2)) | arrow(lambda)^((n-3)) | ... | arrow(lambda)^((0))) / det(arrow(lambda)^((n-1)) | ... | arrow(lambda)^((0)))$
-]
+$
+  => arrow(beta) perp& sum_(k=1)^n hat(e)_k lambda_k^m =: arrow(lambda)^((m)) #[ for ] m = 0 ... n-2, quad #[and ] arrow(beta) dot arrow(lambda)^(n-1) = 1
+$
+
+There are several ways to construct $beta$. Here we will list two ways. The first way relies on some properties of the determinant. It is the approach used in an older version of this package and is often more useful for analytical calculations. It introduces however precision-errors for numerical calculations and becomes unstable for large dimensions and/or eigenvalues.
+
+This is why in a more recent version, the change was made to directly finding the orthogonal complement of the space spanned by $arrow(lambda)^((0)), ..., arrow(lambda)^((n-2))$. We expect the orthogonal complement to be of dimension 1, s.t. $beta$'s relation to $arrow(lambda)^((n-1))$ uniquely defines $beta$. In both cases we rely on the fact that $arrow(lambda)^((0)), ..., arrow(lambda)^((n-1))$ are linear independent.
+
+#list([
+  *Construction via the determinant*
+  
+  If the rows (or columns) of a matrix are linearly dependent then the matrix is not invertable and its determinant will vanish. On the flip side if the entries are linear independent then the matrix's determinant will be non-zero. Thus, for a set of independent vectors ${w_(k+1), ..., w_n}$ an orthogonal tensor $T$ with
+  
+  #nonumber($T_(m_1...m_k) = det(hat(e)_(m_1) | ... | hat(e)_(m_k) | w_(k+1) | ... | w_n)$)
+
+  can be constructed. If contracted with arbitrary vectors $(w_1, ..., w_k)$ then the orthogonal tensor will yield $det(w_1 | ... | w_n)$ which will be 0 iff the vectors $w_1, ..., w_n$ are linear dependent. This means that $T$ is non-zero, and means in particular for $k=1$ that $T$ becomes the tensor perpendicular to the vectors $w_2, ..., w_n$
+
+  Since $arrow(lambda)^((0)), ..., arrow(lambda)^((n-1))$ are linear independent, we find:
+
+  #math.equation(block: true, numbering: n => "("+[#n]+"a)")[
+    $beta_k =& det(hat(e)_k | arrow(lambda)^((n-2)) | arrow(lambda)^((n-3)) | ... | arrow(lambda)^((0))) / det(arrow(lambda)^((n-1)) | ... | arrow(lambda)^((0)))$
+  ]
+], [
+  *Subtracting the span*
+
+  As elegant the above approach might be, for numerical problems it turns out to be more stable to just spanning the embedding $n$-dimensional vector space by some vectors and then subtracting the spanned space from the embedding space. The subtracted vectors will then only span the orthogonal complement: 
+
+  Consider some arbitrary vectors $(v_1, v_2, ...)$ with $"span"(v_1, v_2, ...) = FF^n$, and define:
+
+  #nonumber($v'_i =& v_i - sum_(m=0)^(n-2) arrow(lambda)^((m)) (arrow(lambda)^((m)) dot v_i)/(arrow(lambda)^((m)) dot arrow(lambda)^((m)))$)
+
+  #math.equation(block: true, numbering: n => "("+[#(n - 1)]+"b)")[
+    $=> "span"(arrow(beta)) =& "span"(v'_1, v'_2, ...)$
+  ]
+
+  The condition $arrow(beta) dot arrow(lambda)^((n-1)) ouset(=,!) 1$ fixes the scale of $beta$.
+])
+#counter(math.equation).update(n => n - 1)
 
 @recurrent-ndim yields for $alpha_(m k)$:
 
