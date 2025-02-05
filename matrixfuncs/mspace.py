@@ -1,25 +1,27 @@
 import numpy as np
 from collections import namedtuple
+import scipy
 
-def normed_basis(vecs, zero_thrsh=1e-12, eps=1e-128, apply_count=3):
-  if apply_count != 1:
-    kwargs=dict(zero_thrsh=zero_thrsh, eps=eps, apply_count=1)
-    ret = vecs
-    for _ in range(max(1, apply_count)):
-      ret = normed_basis(ret, **kwargs)
-    return ret
+# def normed_basis(vecs, zero_thrsh=1e-12, eps=1e-128, apply_count=3):
+#   if apply_count != 1:
+#     kwargs=dict(zero_thrsh=zero_thrsh, eps=eps, apply_count=1)
+#     ret = vecs
+#     for _ in range(max(1, apply_count)):
+#       ret = normed_basis(ret, **kwargs)
+#     return ret
 
-  vecs = vecs[np.linalg.norm(vecs, axis=1) > zero_thrsh]
-  if np.shape(vecs)[0] <= 1:
-    return vecs/(np.linalg.norm(vecs, axis=1)+eps)
-  bs = [vecs[0]/(np.linalg.norm(vecs[0], axis=0)+eps)]
-  for v in vecs[1:]:
-    v0 = v - np.tensordot(np.tensordot(np.conj(bs), v, 1), bs, 1)
-    v0_norm = np.linalg.norm(v0)
-    if v0_norm < zero_thrsh:
-      continue
-    bs.append(v0/v0_norm)
-  return np.array(bs)
+#   vecs = vecs[np.linalg.norm(vecs, axis=1) > zero_thrsh]
+#   if np.shape(vecs)[0] <= 1:
+#     return vecs/(np.linalg.norm(vecs, axis=1)+eps)
+#   bs = [vecs[0]/(np.linalg.norm(vecs[0], axis=0)+eps)]
+#   for v in vecs[1:]:
+#     v0 = v - np.tensordot(np.tensordot(np.conj(bs), v, 1), bs, 1)
+#     v0_norm = np.linalg.norm(v0)
+#     if v0_norm < zero_thrsh:
+#       continue
+#     bs.append(v0/v0_norm)
+#   return np.array(bs)
+
 
 def eigval_multiplicity(M: np.ndarray, eigvals: np.ndarray | None =None, zero_thrsh = 1e-15, rel_eq_thrsh = 1e-8):
   if eigvals is None:
@@ -50,7 +52,8 @@ def eigval_multiplicity(M: np.ndarray, eigvals: np.ndarray | None =None, zero_th
     eigvals_ker, eigvecs_ker = np.linalg.eig(M - ev*np.eye(nEigvals))
     inds_ker = abs(eigvals_ker) < ev_thrsh
     vecs_ker = eigvecs_ker[:, inds_ker]
-    vecs_ker_min = normed_basis(vecs_ker.T).T
+    # vecs_ker_min = normed_basis(vecs_ker.T).T
+    vecs_ker_min = scipy.linalg.orth(vecs_ker)
     geom_mult.append(np.shape(vecs_ker_min)[-1])
   geom_mult = np.array(geom_mult)
 
@@ -58,16 +61,23 @@ def eigval_multiplicity(M: np.ndarray, eigvals: np.ndarray | None =None, zero_th
   ret = Ret(unique_eigvals, alg_mult, geom_mult)
   return ret
 
-def tangent_space(vecs: np.ndarray, n_rnd_vecs: int|None=None):
+def tangent_space(vecs: np.ndarray, n_rnd_vecs: int|str|None='auto', apply_count=3):
   if len(np.shape(vecs)) < 2:
     vecs = np.reshape(vecs, (1, -1))
+  t_vecs = None
   if n_rnd_vecs is None:
+    t_vecs = np.eye(np.shape(vecs)[-1])
+  elif isinstance(n_rnd_vecs, str) and n_rnd_vecs.lower() == 'auto':
     n_rnd_vecs = np.shape(vecs)[-1] + 1
-  t_vecs = np.random.randn(n_rnd_vecs, np.shape(vecs)[-1])
-  vecs_normed = normed_basis(vecs)
-  for v in vecs_normed:
-    t_vecs -= np.tensordot(np.tensordot(t_vecs, np.conj(v), 1), v, 0)
-  ret = normed_basis(t_vecs)
+  if t_vecs is None:
+    t_vecs = np.random.randn(n_rnd_vecs, np.shape(vecs)[-1])
+  vecs_normed = scipy.linalg.orth(vecs.T).T
+
+  for _ in range(max(1, apply_count)):
+    for v in vecs_normed:
+      t_vecs -= np.tensordot(np.tensordot(t_vecs, np.conj(v), 1), v, 0)
+    t_vecs = scipy.linalg.orth(t_vecs.T).T
+  ret = t_vecs
   return ret
 
 class MSpace:
@@ -261,6 +271,7 @@ class MSpace:
     # ret0 = np.linalg.det(ret_buffer/ret_normfac1)
     # ret: np.ndarray = ret0 / ret_normfac
 
+    # beta0 = tangent_space(eigvals_alt[:, 1:].T)
     beta0 = tangent_space(eigvals_alt[:, 1:].T)
     assert np.shape(beta0)[0] == 1, 'Found too many solutions'
     ret = beta0[0] / (beta0[0] @ eigvals_alt[:, 0])
