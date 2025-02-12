@@ -1,27 +1,7 @@
 import numpy as np
 from collections import namedtuple
 import scipy
-
-# def normed_basis(vecs, zero_thrsh=1e-12, eps=1e-128, apply_count=3):
-#   if apply_count != 1:
-#     kwargs=dict(zero_thrsh=zero_thrsh, eps=eps, apply_count=1)
-#     ret = vecs
-#     for _ in range(max(1, apply_count)):
-#       ret = normed_basis(ret, **kwargs)
-#     return ret
-
-#   vecs = vecs[np.linalg.norm(vecs, axis=1) > zero_thrsh]
-#   if np.shape(vecs)[0] <= 1:
-#     return vecs/(np.linalg.norm(vecs, axis=1)+eps)
-#   bs = [vecs[0]/(np.linalg.norm(vecs[0], axis=0)+eps)]
-#   for v in vecs[1:]:
-#     v0 = v - np.tensordot(np.tensordot(np.conj(bs), v, 1), bs, 1)
-#     v0_norm = np.linalg.norm(v0)
-#     if v0_norm < zero_thrsh:
-#       continue
-#     bs.append(v0/v0_norm)
-#   return np.array(bs)
-
+import numdifftools as nd
 
 def eigval_multiplicity(M: np.ndarray, eigvals: np.ndarray | None =None, zero_thrsh = 1e-15, rel_eq_thrsh = 1e-8):
   if eigvals is None:
@@ -70,7 +50,10 @@ def tangent_space(vecs: np.ndarray, n_rnd_vecs: int|str|None='auto', apply_count
   elif isinstance(n_rnd_vecs, str) and n_rnd_vecs.lower() == 'auto':
     n_rnd_vecs = np.shape(vecs)[-1] + 1
   if t_vecs is None:
-    t_vecs = np.random.randn(n_rnd_vecs, np.shape(vecs)[-1])
+    if np.iscomplexobj(vecs):
+      t_vecs = np.random.randn(n_rnd_vecs, np.shape(vecs)[-1], 2) @ [1, 1j]
+    else:
+      t_vecs = np.random.randn(n_rnd_vecs, np.shape(vecs)[-1])
   vecs_normed = scipy.linalg.orth(vecs.T).T
 
   for _ in range(max(1, apply_count)):
@@ -105,14 +88,20 @@ class MSpace:
   '''
 
   def __init__(self, M: np.ndarray, eigvals: np.ndarray|None = None):
-    self.M = M
-    self.eigvals = np.linalg.eigvals(M) if not eigvals else eigvals
-    self.eigval_multiplicity = eigval_multiplicity(self.M, self.eigvals)
-    self.__normed_basis = MSpace.NormedBasis(self.M)
-    self.basis = MSpace.GeneratedBasis(self.M, self.dim)
-    self.beta = MSpace.Beta(eigvals=self.eigvals)
-    self.lambdaCoeffs = MSpace.Lambda(eigvals=self.eigvals)
-    self.funcCoeffs = MSpace.FunctionCoeffs(self.basis, self.beta, self.lambdaCoeffs, self.eigvals)
+    self.M = np.array(M)
+    self.eigvals = np.linalg.eigvals(self.M) if not eigvals else eigvals
+    self.__normed_basis = MSpace.Normed_Basis(M=self.M)
+    self.multiplicity = eigval_multiplicity(M=self.M, eigvals=self.eigvals)
+    self._mult_space_selectors = tuple(MSpace.Mult_Space_Selectors(algebraic_mult=self.multiplicity.algebraic))
+    dim = self.dim
+    _dim = np.sum(self.multiplicity.algebraic - self.multiplicity.geometric + 1)
+    assert dim == _dim, 'Inconsistent dimension count between basis dimension and eigenvalue multiplicity'
+    self.basis = MSpace.Generated_Basis(M=self.M, rank=dim)
+    self.eigval_recurrence_sol = MSpace.Eigval_Recurrence_Sol(multiplicity=self.multiplicity)
+    self.beta = MSpace.Beta(ev_rec_sol=self.eigval_recurrence_sol)
+    self.lambda_coeffs = MSpace.Lambda(eigvals=self.eigvals)
+    self.phi_coeffs = MSpace.Phi_Coeffs(lambda_coeffs=self.lambda_coeffs, beta=self.beta, multiplicity=self.multiplicity, multiplicity_selector=self._mult_space_selectors)
+    self.function_coeffs = MSpace.Function_Coeffs(basis=self.basis, phi_coeffs=self.phi_coeffs)
 
   @property
   def normed_basis(self):
@@ -127,17 +116,18 @@ class MSpace:
     shapes = np.shape(x)[-2:] + np.shape(y)[-2:]
     n = shapes[0]
     assert shapes == (n, )*4, 'x and y have to be square matrices of the same size'
-    return np.tensordot(np.conj(x), y, ((-2, -1), (-2, -1)))/n
+    ret = np.tensordot(np.conj(x), y, ((-2, -1), (-2, -1)))/n
+    return ret
 
   @staticmethod
   def norm(x: np.ndarray):
     return np.linalg.norm(x, axis=(-2, -1))/np.sqrt(np.shape(x)[-1])
-    # return np.sqrt(MSpace.sdot(x, x))
 
   @staticmethod
-  def NormedBasis(M: np.ndarray):
+  def Normed_Basis(M: np.ndarray, repeat_count = 1):
+    # Increased accuracy by applying GS-method thrice didn't improve accuracy 
     ret: list[np.ndarray] = [np.eye(M.shape[-1])]
-    for _ in range(M.shape[-1]):
+    for _ in range(1, M.shape[-1]):
       new_val0 = ret[-1]@M
       parallels = MSpace.sdot(ret, new_val0)
       paralell_vec = np.tensordot(ret, parallels, ((0,), (0,)))
@@ -146,11 +136,25 @@ class MSpace:
       if np.allclose(norm, 0):
         break
       ret.append(perpendicular_vec/norm)
+
+    for _ in range(repeat_count - 1):
+      if len(ret) > 2:
+        break
+      ret0 = ret
+      ret = ret0[:2]
+      for next_val in ret0[2:]:
+        parallels = MSpace.sdot(ret, next_val)
+        paralell_vec = np.tensordot(ret, parallels, ((0,), (0,)))
+        perpendicular_vec = next_val - paralell_vec
+        norm = MSpace.norm(perpendicular_vec)
+        if np.allclose(norm, 0):
+          break
+        ret.append(perpendicular_vec/norm)
     return ret
 
 
   @staticmethod
-  def GeneratedBasis(M: np.ndarray, rank: int|None = None):
+  def Generated_Basis(M: np.ndarray, rank: int|None = None):
     '''The list A^0, A^1, ..., A^`rank`. If rank is `None` use the dimension of the matrix.
 
     Parameters
@@ -161,13 +165,26 @@ class MSpace:
       The rank of `M`
     '''
     if rank is None: rank = M.shape[0]
-    ret: list[np.ndarray] = [np.eye(M.shape[0]), M]
+    ret: list[np.ndarray] = [np.eye(M.shape[0]), M][:rank]
     while len(ret) < rank:
       ret.append(ret[-1]@M)
     return ret
 
   @staticmethod
-  def Eigvals_alt(M: np.ndarray | None =None, eigvals: np.ndarray | None =None, multiplicity: np.ndarray | None =None):
+  def Mult_Space_Selectors(algebraic_mult: np.ndarray):
+    alg = np.array(algebraic_mult)
+    max_order = np.max(alg)
+    ev_inds0 = np.arange(len(alg))
+    inds0 = np.array([sum(alg[:i]) for i in ev_inds0])
+    for order in range(1, max_order+1):
+      evs_selection = alg >= order
+      ev_inds = ev_inds0[evs_selection]
+      inds = (inds0 + order - 1)[evs_selection]
+      yield ev_inds, inds
+
+
+  @staticmethod
+  def Eigval_Recurrence_Sol(multiplicity: np.ndarray | None =None, M: np.ndarray | None =None, eigvals: np.ndarray | None =None):
     if multiplicity is None:
       multiplicity = eigval_multiplicity(M=M, eigvals=eigvals)
     evs, alg, _ = multiplicity
@@ -188,48 +205,9 @@ class MSpace:
       ret[inds, :] = val
     return ret
 
-  # @staticmethod
-  # def Beta0(M: np.ndarray | None =None, eigvals: np.ndarray | None =None):
-  #   '''A vector which is perpendicular to e_i*ev_i^m for m=0..n-2 where ev_i are the eigenvalues and n the number of eigenvalues
-
-  #   Parameters
-  #   ----------
-  #   M : array-like | None = None
-  #     A square matrix
-  #   eigvals : array-like | None = None
-  #     The eigenvalues of `M`
-  #   Either `eigvals` or `M` should be specified.
-  #   '''
-  #   if eigvals is None:
-  #     if M is None:
-  #       raise ValueError('M or eigvals have to be specified')
-  #     else:
-  #       eigvals = np.linalg.eigvals(M)
-  #   else:
-  #     eigvals = np.array(eigvals)
-  #   nEigvals = eigvals.shape[0]
-  #   if nEigvals == 1: return 1.
-  #   if nEigvals == 2: return np.array([1,-1], dtype=eigvals.dtype)
-
-  #   # Q = ([np.ones_like(eigvals), eigvals] + [eigvals**k for k in range(2, nEigvals-1)])[::-1]
-  #   # ret = [np.linalg.det([ei]+Q) for ei in np.eye(nEigvals)]
-
-  #   # rets = np.zeros((nEigvals,)*3, dtype=eigvals.dtype)
-  #   # rets[:, :, 1:-1] = eigvals.reshape((-1, 1))**np.arange(nEigvals-2, 0, -1)
-  #   # rets[:, :, -1] = 1
-  #   # rets[:, :, 0] = np.eye(nEigvals)
-  #   # ret = np.linalg.det(rets)
-
-  #   rets = np.zeros((nEigvals,)*3, dtype=eigvals.dtype)
-  #   rets[:, :, 1:-1] = eigvals.reshape((-1, 1))**np.arange(nEigvals-2, 0, -1)
-  #   rets[:, :, -1] = 1
-  #   rets[:, :, 0] = np.eye(nEigvals)
-  #   ret = np.linalg.det(rets)
-
-  #   return np.array(ret)
 
   @staticmethod
-  def Beta(eigvals_alt: np.ndarray|None=None, eigvals: np.ndarray|None=None, M:np.ndarray|None=None):
+  def Beta(ev_rec_sol: np.ndarray|None, **kwargs):
     '''beta0/(beta0 @ e_i*ev_i^(n-1)), see also method `MSpace.Beta0`.
 
     Parameters
@@ -242,43 +220,15 @@ class MSpace:
       A square matrix
     Either `eigvals` or `M` should be specified. Optionally specify beta0.
     '''
-    # if eigvals is None:
-    #   if M is None:
-    #     raise ValueError('M or eigvals have to be specified')
-    #   else:
-    #     eigvals = np.linalg.eigvals(M)
-    # else:
-    #   eigvals = np.array(eigvals)
-    # if beta0 is None:
-    #   beta0 = MSpace.Beta0(M, eigvals)
-    # else:
-    #   beta0 = np.array(beta0)
-
-    # nEigvals = eigvals.shape[0]
-    # lms = eigvals**(nEigvals-1)
-    # ret: np.ndarray = beta0 / (beta0 @ lms)
-    # return ret
-
-    # nEigvals = eigvals_alt.shape[0]
-    # ret_buffer = np.zeros((nEigvals,)*3, dtype=eigvals_alt.dtype)
-    # ret_buffer[:] = eigvals_alt.reshape((1,) + eigvals_alt.shape)
-    # ret_buffer[:, :, 0] = np.eye(nEigvals)
-    # ret_normfac0 = np.linalg.det(eigvals_alt)
-    # ret_normfac_abs = abs(ret_normfac0)
-    # ret_normfac1 = ret_normfac_abs**(1/nEigvals)
-    # ret_normfac = np.linalg.det(eigvals_alt/ret_normfac1)
-    
-    # ret0 = np.linalg.det(ret_buffer/ret_normfac1)
-    # ret: np.ndarray = ret0 / ret_normfac
-
-    # beta0 = tangent_space(eigvals_alt[:, 1:].T)
-    beta0 = tangent_space(eigvals_alt[:, 1:].T)
+    if ev_rec_sol is None:
+      ev_rec_sol = MSpace.Eigval_Recurrence_Sol(**kwargs)
+    beta0 = tangent_space(ev_rec_sol[:, 1:].T)
     assert np.shape(beta0)[0] == 1, 'Found too many solutions'
-    ret = beta0[0] / (beta0[0] @ eigvals_alt[:, 0])
+    ret = beta0[0] / (beta0[0] @ ev_rec_sol[:, 0])
     return ret
 
   @staticmethod
-  def Lambda(eigvals: np.ndarray|None=None, M: np.ndarray|None=None, inds: list[int]|int|None=None):
+  def Lambda(eigvals: np.ndarray|None, inds: list[int]|int|None=None, **kwargs):
     '''The coefficients of M^n as a vector in the krylov space. There are also equal to the non-trivial negated coeffecients of the characteristic polynomial of `M`
     
     Parameters
@@ -292,6 +242,7 @@ class MSpace:
     Either `eigvals` or `M` should be specified. Optionally specify `inds`.
     '''
     if eigvals is None:
+      M = kwargs.get('M', None)
       if M is None:
         raise ValueError('M or eigvals have to be specified')
       else:
@@ -325,7 +276,39 @@ class MSpace:
     
 
   @staticmethod
-  def FunctionCoeffs(basis: np.ndarray|None=None, beta:np.ndarray|None=None, lambdaCoeffs: np.ndarray|None=None, eigvals: np.ndarray|None=None, **kwargs):
+  def _Phi_Coeffs_Per_Eigval(ev_idx: int, lambda_coeffs: np.ndarray, beta: np.ndarray, multiplicity: np.ndarray, multiplicity_selector: np.ndarray, upscaled_basis=False):
+    beta_inds = np.concat([inds[ev_inds == ev_idx] for ev_inds, inds in multiplicity_selector])
+    red_beta = beta[beta_inds]
+    ev = multiplicity.eigvals[ev_idx]
+    eff_multiplicity = (multiplicity.algebraic - multiplicity.geometric + 1) if not upscaled_basis else multiplicity.algebraic
+    eig_mult = multiplicity.algebraic[ev_idx]
+    eff_eig_mult = eff_multiplicity[ev_idx]
+    nEigvals = np.sum(eff_multiplicity) #lambda_coeffs.shape[0]
+    # n_inds = np.arange(nEigvals)
+    
+    def lambda_coeffs_k(k: int):
+      return lambda_coeffs[:k+1][::-1]
+    def vals_q(q: int):
+      red_beta_q = red_beta[q:eig_mult]
+      binom_q = scipy.special.binom(np.arange(q, eig_mult), q)
+      signs_q = 2*(np.arange(eig_mult-q) % 2 == 0) - 1
+      return red_beta_q * binom_q * signs_q
+    def vals_qk(q: int, k: int):
+      qk_inds = np.arange(eig_mult-q).reshape((-1, 1)) + np.arange(1, k+2).reshape((1, -1)) # j+p-q
+      evs_qk = ev**(-qk_inds)
+      ratio_qk = np.array([np.prod(qk_inds[:p_q], axis=0) for p_q in range(qk_inds.shape[0])])
+      return evs_qk * ratio_qk
+    def ret_qk(q: int, k: int):
+      v_q = vals_q(q)
+      v_qk = vals_qk(q, k)
+      v_k = lambda_coeffs_k(k)
+      return v_q @ v_qk @ v_k
+
+    ret = np.reshape([ret_qk(q, k) for q in range(eff_eig_mult) for k in range(nEigvals)], (eff_eig_mult, nEigvals))
+    return ret
+
+  @staticmethod
+  def Phi_Coeffs(lambda_coeffs: np.ndarray, beta: np.ndarray, multiplicity, multiplicity_selector: np.ndarray, upscaled_basis=False):
     '''A rank 3 tensor which collects all contraction to efficiently calculate the matrix via tensor contraction.
     In total `f(M)_ij = FunctionCoeffs(..)_ijk f(eigvals_k)`
 
@@ -341,37 +324,93 @@ class MSpace:
       The eigenvalues of `M`
     Either `eigvals` or `M` should be specified. Optionally specify `basis`, `beta` and `lambdaCoeffs`.
     '''
-    if eigvals is None:
-      M = kwargs.get('M', None)
-      if M is None:
-        raise ValueError('M or eigvals have to be specified')
-      else:
-        eigvals = np.linalg.eigvals(M)
-    else:
-      eigvals = np.array(eigvals)
-    nEigvals = eigvals.shape[0]
-    if basis is None:
-      basis = MSpace.Basis(eigvals=eigvals, **kwargs)
-    if beta is None:
-      beta = MSpace.Beta(eigvals=eigvals, **kwargs)
-    if lambdaCoeffs is None:
-      lambdaCoeffs = MSpace.Lambda(eigvals=eigvals, **kwargs)
-    # eigvalTensor = np.array([eigvals**q for q in range(-nEigvals, 0)]).T
-    eigvalTensor = eigvals.reshape((-1,1))**np.arange(-nEigvals, 0)
-    #eigvalTensorK = lambda k: np.array([eigvals**q for q in range(-k-1, 0)]).T
-    eigvalTensorK = lambda k: eigvalTensor[:, nEigvals-k-1:]
-    ret : np.ndarray = np.sum([np.outer(basis[k], beta*(eigvalTensorK(k) @ lambdaCoeffs[:k+1])).reshape((nEigvals,)*3) for k in range(nEigvals)], axis=0)
-    #ret = np.sum([np.einsum('ij,k,km,m->ijk', basis[k], beta, eigvalTensorK(k), lambdaCoeffs[:k+1]) for k in range(nEigvals)], axis=0)
+    coeff_per_eigval = lambda idx: MSpace._Phi_Coeffs_Per_Eigval(idx, lambda_coeffs, beta, multiplicity, multiplicity_selector, upscaled_basis=upscaled_basis)
+    ret = tuple(map(coeff_per_eigval, range(len(multiplicity.eigvals))))
     return ret
 
-  def __repr__(self) -> str:
-    return 'MSpace'+repr(dict(
-      M = self.M,
-      Eigvals = self.eigvals,
-      Basis = self.basis,
-      Beta0 = MSpace.Beta0(eigvals=self.eigvals),
-      Beta = self.beta,
-      Lambda = self.lambdaCoeffs, 
-      Coeffs = self.funcCoeffs,
-    ))
+  @staticmethod
+  def Function_Coeffs(basis: np.ndarray, phi_coeffs: tuple[np.ndarray], upscaled_basis=False):
+    #TODO: basis has potentially a reduced dim, but what about phi_coeffs?
+    if upscaled_basis:
+      if np.shape(basis)[0]==1 and np.shape(basis)[-1]==np.shape(basis)[0]:
+        raise NotImplementedError(basis)
+      while True:
+        dim_defect = np.shape(basis)[-1] - np.shape(basis)[0]
+        if not bool(dim_defect): break
+        basis = np.concat([basis, basis[-1] @ basis[1:dim_defect+1]])
+    ret = tuple([np.tensordot(c, basis, axes=((1,), (0,))) for c in phi_coeffs])
+    return ret
 
+  @staticmethod
+  def Apply_Function(coeffs_lq, multiplicity, f, *dfs, gen_df=None, **kwargs):
+    diff_count = np.max(tuple(map(len, coeffs_lq)))
+    fs = [f] + list(dfs[:diff_count-1])
+    if len(fs) < diff_count:
+      if gen_df is None:
+        k0 = len(fs)-1
+        gen_df = lambda i, **_: nd.Derivative(fs[k0], n=i-k0, order=2*1)
+      for i in range(len(fs), diff_count):
+        fs.append(gen_df(i))
+    evs = multiplicity.eigvals
+    ret = np.sum([np.tensordot([f_k(ev, **kwargs) for f_k in fs[:len(c_q)]], c_q, axes=1) for ev, c_q in zip(evs, coeffs_lq)], axis=0)
+    return ret
+
+  def apply(self, f, *dfs, **kwargs):
+    return MSpace.Apply_Function(self.function_coeffs, self.multiplicity, f, *dfs, **kwargs)
+
+  def __repr__(self) -> str:
+    ident = ' '*2
+    inner = ident + f',\n{ident}'.join((
+      f'M: {self.M}',
+      f'eigvals: {self.multiplicity}',
+      f'dim: {self.dim}',
+      f'basis: {self.basis}',
+      f'beta: {self.beta}',
+      f'coeffs: {self.phi_coeffs}'
+    ))
+    return f'MSpace(\n{inner} )'
+
+
+t=np.arange(10)
+M=np.zeros(t.shape*2)
+M[t,t] = (1,2,2,3,3,4,4,4,4,4)
+M[t[:-1],t[1:]] = (0,0,0,1,0,1,1,1,0)
+M
+
+# # M = 2*np.eye(3)
+# # M[[0, 1], [1, 2]] = 1
+
+# M = np.random.randn(10, 10)
+
+# # M = np.array(((1, 1), (-1, 1)))
+
+
+mspace = MSpace(M)
+# MSpace.Phi_Coeffs(mspace.lambda_coeffs, mspace.beta, mspace.multiplicity, mspace._mult_space_selectors, True)
+# coeffs_lq = mspace.phi_coeffs
+# tuple((np.round(c, 12) for c in mspace.phi_coeffs))
+# tuple((np.round(c, 12) for c in mspace.function_coeffs))
+
+
+mspace.M
+np.round(mspace.apply(np.exp), 12)
+np.real_if_close(mspace.apply(np.exp))
+log_M_2 = mspace.apply(np.log)
+log_M = mspace.apply(np.log, gen_df=lambda k: (lambda x: np.prod(-np.arange(1, k))/x**k))
+d_log_M = np.linalg.norm(log_M - log_M_2)
+
+
+log_mspace = MSpace(log_M)
+id_M = log_mspace.apply(np.exp)
+sqare_M = log_mspace.apply(lambda x: np.exp(2*x))
+sqrt_M = mspace.apply(np.sqrt)
+sqrt_M_2 = log_mspace.apply(lambda x: np.exp(.5*x))
+exp_M = mspace.apply(np.exp, gen_df=lambda _, **__: np.exp)
+
+id_err = np.linalg.norm(id_M - M)
+square_err = np.linalg.norm(sqare_M - M@M)
+sqrt_err = np.linalg.norm(sqrt_M@sqrt_M - M)
+sqrt_err_2 = np.linalg.norm(sqrt_M_2@sqrt_M_2 - M)
+exp_pade_err = np.linalg.norm(exp_M - scipy.linalg.expm(M))
+
+mspace.multiplicity
