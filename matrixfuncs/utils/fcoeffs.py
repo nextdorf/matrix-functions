@@ -125,4 +125,17 @@ log_M = np.tensordot(ev_mult.map(np.log), cs, 1)
 np.linalg.norm(np.linalg.eigvals(log_M) - np.log(evs))
 
 
+# See https://github.com/scipy/scipy/issues/21803#issuecomment-2455666759
+big_M = np.array([[40, 1], [1, 0]])
+big_evs = np.linalg.eigvalsh(big_M)
+# big_evs = np.linalg.eigvals(big_M)
+big_ev_mult = eigval_multiplicity(big_M, big_evs)
+big_b = b_matrix(big_ev_mult)[:, ::-1].T
+big_cs = scipy.linalg.solve(big_b, matrix_power_series(big_M, len(big_b)))
+exp_big_M = np.tensordot(big_ev_mult.map(np.exp), big_cs, 1)
+exp_big_M_ref = scipy.linalg.expm(big_M)
+np.linalg.norm(exp_big_M - exp_big_M_ref)/np.sqrt(np.linalg.norm(exp_big_M)*np.linalg.norm(exp_big_M_ref))
+
+
+
 
