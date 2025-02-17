@@ -4,10 +4,45 @@ import numdifftools as nd
 import scipy
 
 class Multiplicity(namedtuple('Multiplicity', 'eigvals algebraic geometric'.split())):
+  '''Represents the multiplicity of eigenvalues
+
+  Overloaded namedtuple. Contains an eigvals-array, the algebraic multiplicity, and the geometric
+  multiplicity. 
+
+  Attributes
+  ----------
+  eigvals : array-like
+    An array of distinct eigenvalues
+  algebraic : array-like
+    An array of the algebraic multiplicity of the respective eigvals. The kth multiplicity belongs to the kth eigenvalue.
+  geometric : array-like
+    An array of the geometric multiplicity of the respective eigvals. The kth multiplicity belongs to the kth eigenvalue.
+  '''
   def __new__(cls, eigvals: np.ndarray, algebraic: np.ndarray, geometric: np.ndarray):
     return super(Multiplicity, cls).__new__(cls, eigvals, algebraic, geometric)
 
   def map(self, f, *dfs, gen_df=None, **kwargs):
+    '''Maps the eigenvalues over the function.
+
+    Parameters
+    ----------
+    f : function
+      A function which is applied on the eigenvalues.
+    dfs : function
+      The 1st, 2nd, 3rd, ... derivatives of `f` which may be applied on the eigenvalues.
+    gen_df : function -> function
+      gen_df(k) should generate the kth derivative. Using dfs takes precedance over using gen_df.
+      If gen_df is `None` then `numdifftools.Derivative` is used.
+
+    Returns
+    -------
+    Ret : ndarray
+      (f(ev0), f'(ev0), f''(ev0), ..., f(ev1), f'(ev1), f''(ev1), ...)
+      
+    Notes
+    -----
+    See also `ev_iter` for further details on the order.
+    '''
     diff_count = np.max(self.algebraic)
     fs = [f] + list(dfs[:diff_count-1])
     if len(fs) < diff_count:
@@ -21,27 +56,48 @@ class Multiplicity(namedtuple('Multiplicity', 'eigvals algebraic geometric'.spli
 
   @property
   def ev_iter(self):
+    '''An iterator over the eigenvalues and the multiplicity.
+
+    Returns
+    -------
+    (i, ev, alg, k) : (int, float|complex, int, int)
+      i : The index of the eigenvalue, outer iterator
+      ev : The ith eigenvalue
+      alg : The algebraic of the kth eigen value
+      k : A counter from 0..alg-1, inner iterator
+    '''
     return ((i, ev, alg, k) for i, (ev, alg) in enumerate(zip(self.eigvals, self.algebraic)) for k in range(alg))
 
 
   @property
   def tr(self):
+    'The trace'
     return self.eigvals @ self.algebraic
 
   @property
   def det(self):
+    'The determinant'
     return np.prod(self.eigvals ** self.algebraic)
 
   @property
   def dim(self):
+    'The dimension'
     return np.sum(self.algebraic)
 
   @property
   def rank(self):
+    'The rank'
     return np.sum(self.algebraic - self.geometric + 1)
 
   @property
   def product_norm(self):
+    '''A norm-similar quantity which may be used to normalize the corresponding matrix
+
+    If all eigenvalues are non-zero then abs(det)**(1/dim) is returned.
+    If some but not all eigenvalues are non-zero then the `product_norm` for the matrix with the
+    kernel-space is returned.
+    If 0 is the only eigenvalue then 1 is returned.
+    '''
     if np.all(self.eigvals==0):
       return np.ones_like(self.eigvals[0])
     elif np.any(self.eigvals==0):
@@ -51,8 +107,26 @@ class Multiplicity(namedtuple('Multiplicity', 'eigvals algebraic geometric'.spli
       e = self.algebraic/np.sum(self.algebraic)
       return np.prod(np.abs(self.eigvals) ** e)
 
+  @staticmethod
+  def from_matrix(M: np.ndarray, eigvals: np.ndarray | None =None, **kwargs):
+    'See eigval_multiplicity for details'
+    return eigval_multiplicity(M=M, eigvals=eigvals, **kwargs)
+
 
 def matrix_power_series(M: np.ndarray, stop: int):
+  '''A series of matrix powers.
+
+  Parameters
+  ----------
+  M : NxN-array
+    The matrix
+  stop : int
+    The exclusive upper bound for the series.
+
+  Returns
+  -------
+  series: [ndarray]
+  '''
   shape = np.shape(M)
   assert len(shape)==2 and shape[0]==shape[1], 'M is not a square matrix'
   dim = shape[0]
@@ -64,6 +138,25 @@ def matrix_power_series(M: np.ndarray, stop: int):
   return np.array(ret)[:max(stop, 0)]
 
 def eigval_multiplicity(M: np.ndarray, eigvals: np.ndarray | None =None, zero_thrsh = 1e-15, rel_eq_thrsh = 1e-8):
+  '''Algebraic and geometric multiplicity of the eigen values.
+
+  Parameters
+  ----------
+  M : NxN-array
+    The matrix
+  eigvals : Optional[ndarray] = None
+    The eigen values of M. If `None` then `np.linalg.eigvals` is used
+  zero_thrsh : float = 1e-15
+    A threshold determining whether an eigenvalue is considered to be 0. Set to 0 if only 0 itself
+    should be considered a vanishing eigen value.
+  rel_eq_thrsh : float = 1e-8
+    A threshold determining whether two non-zero eigenvalues are considered to be equal. Values are
+    considered different if abs(ev1/ev2 - 1) > `rel_eq_thrsh`.
+
+  Returns
+  -------
+  mult: Multiplicity
+  '''
   if eigvals is None:
     eigvals = np.linalg.eigvals(M)
   else:
@@ -102,7 +195,40 @@ def eigval_multiplicity(M: np.ndarray, eigvals: np.ndarray | None =None, zero_th
   ret = Multiplicity(unique_eigvals, alg_mult, geom_mult)
   return ret
 
-def b_matrix(multiplicity):
+def b_matrix(multiplicity: Multiplicity):
+  '''A special matrix for constructing the `phi` tensor
+
+  Parameters
+  ----------
+  multiplicity : Multiplicity
+    Multiplicity of the eigenvalues
+
+  Returns
+  -------
+  b: ndarray
+    Intended to be used like `cs = scipy.linalg.solve(b, matrix_power_series(M, len(b)))`. See also
+    the example.
+
+  Example
+  -------
+  >>> # Construct a random 5x5 matrix M and explicitly construct the exp(M)
+  >>> M = np.random.randn(5,5)
+  >>> mult = eigval_multiplicity(M)
+  >>> b = b_matrix(mult)[:, ::-1].T
+  >>> cs = scipy.linalg.solve(b, matrix_power_series(M, len(b)))
+  >>> 
+  >>> # M can be set to None since `coeffs` and `eigvals` are provided
+  >>> expM = apply_fn(None, 'exp', coeffs=cs, eigvals=mult)
+  >>> 
+  >>> # Compare solution with reference solution from `scipy.linalg.expm`
+  >>> expM_ref = scipy.linalg.expm(M)
+  >>> np.linalg.norm(expM - expM_ref)
+  >>>
+  >>> #The expected rounding error is of order 1.11e-16 * order of biggest values * sqrt(number of calculation steps in that biggest order)
+  np.float64(2.0755569795398968e-15)
+  '''
+
+  #TODO: use the iterator of multiplicity
   evs, alg, _ = multiplicity
   nEigvals = np.sum(alg)
   ret = np.zeros((nEigvals, nEigvals), dtype=evs.dtype)
@@ -121,8 +247,33 @@ def b_matrix(multiplicity):
     ret[inds, :] = val
   return ret
 
-
 def function_coeffs(M: np.ndarray, eigvals:np.ndarray|None|Multiplicity=None, normalize_to:float|None=1.):
+  '''TODO.
+
+  Parameters
+  ----------
+  M : NxN-array
+    The matrix
+  eigvals : Optional[ndarray|Multiplicity] = None
+    The eigen values of M. If it is not of type Multiplicity then it is calculated using
+    `eigval_multiplicity`
+  normalize_to : Optional[float] = 1.
+    To achieve better accuracy the `M` is rescaled such that the eigenvalues are approximately of
+    size `normalize_to`. In particular, for a non-singular Matrix its determinate will be rescaled
+    to `normalize_to`. Setting `normalize_to` to `None` skips the normalization step.
+
+  Returns
+  -------
+  cs,mult : ndarray, Multiplicity
+    The quantities necessary for applying a function to a matrix. `cs` is the `phi`-tensor. `mult`
+    is the the multiplicity used. If the type of `eigvals` is `Multiplicity` then `mult` is equal
+    to `eigvals`.
+
+  See also
+  --------
+  See also `b_matrix` or `apply_fn` for an example
+  '''
+
   # Idea behind the normalization: f(A) = f(sx) with x=A/s
   if isinstance(eigvals, Multiplicity):
     ev_mult = eigvals
@@ -141,7 +292,55 @@ def function_coeffs(M: np.ndarray, eigvals:np.ndarray|None|Multiplicity=None, no
     cs = scipy.linalg.solve(b, matrix_power_series(M, len(b)))
   return cs, ev_mult
 
-def apply_fn(M: np.ndarray, f, *dfs, gen_df=None, eigvals:np.ndarray|None|Multiplicity=None, normalize_to:float|None=1., **kwargs):
+def apply_fn(M: np.ndarray, f, *dfs, gen_df=None, eigvals:np.ndarray|None|Multiplicity=None, coeffs:np.ndarray|None=None, normalize_to:float|None=1., **kwargs):
+  '''Applies the function `f` to the matrix `M`
+
+  If `eigvals` is of type Multiplicity and `coeffs` is provided then `M` is ignored and the
+  function is applied directly.
+
+  Parameters
+  ----------
+  M : NxN-array
+    The matrix
+  f : function
+    A function which is applied on the eigenvalues.
+  dfs : function
+    The 1st, 2nd, 3rd, ... derivatives of `f` which may be applied on the eigenvalues.
+  gen_df : Optional[function -> function] = None
+    gen_df(k) should generate the kth derivative. Using dfs takes precedance over using gen_df.
+    If gen_df is `None` then `numdifftools.Derivative` is used.
+  eigvals : Optional[ndarray|Multiplicity] = None
+    The eigen values of M. If it is not of type Multiplicity then it is calculated using
+    `eigval_multiplicity`
+  cs : Optional[ndarray]
+    The `phi`-tensor. See also `function_coeffs`
+  normalize_to : Optional[float] = 1.
+    To achieve better accuracy the `M` is rescaled such that the eigenvalues are approximately of
+    size `normalize_to`. In particular, for a non-singular Matrix its determinate will be rescaled
+    to `normalize_to`. Setting `normalize_to` to `None` skips the normalization step.
+
+  Returns
+  -------
+  f_M: ndarray
+    The result of applying `f` to `M`.
+
+  Example
+  -------
+  >>> # Construct a random 5x5 matrix M and explicitly construct the exp(M)
+  >>> # Compare solution with reference solution from `scipy.linalg.expm`
+  >>> M = np.random.randn(5,5)
+  >>> expM = apply_fn(M, 'exp')
+  >>> expM_ref = scipy.linalg.expm(M)
+  >>> np.linalg.norm(expM - expM_ref)
+  >>>
+  >>> #The expected rounding error is of order 1.11e-16 * order of biggest values * sqrt(number of calculation steps in that biggest order)
+  np.float64(2.0755569795398968e-15)
+
+    See also
+  --------
+  See also `b_matrix` for more fine-grained usage, which might be preferred if many functions
+  have to be calculated for the same matrix.
+  '''
   if isinstance(f, str):
     f = f.lower().strip()
     if f == 'exp':
@@ -166,9 +365,14 @@ def apply_fn(M: np.ndarray, f, *dfs, gen_df=None, eigvals:np.ndarray|None|Multip
       gen_df = lambda k: (lambda x: np.prod(np.arange(.5, 1-k, -1))/x**(k-.5))
     else:
       raise ValueError(f'Unknown function f={f}')
-  cs, ev_mult = function_coeffs(M, eigvals, normalize_to)
+  if coeffs is not None and isinstance(eigvals, Multiplicity):
+    cs, ev_mult = coeffs, eigvals
+  else:
+    cs, ev_mult = function_coeffs(M, eigvals, normalize_to)
   ret = np.tensordot(ev_mult.map(f, *dfs, gen_df=gen_df, **kwargs), cs, 1)
   return ret
+
+
 
 
 
