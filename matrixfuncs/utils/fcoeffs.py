@@ -4,39 +4,60 @@ import numdifftools as nd
 import scipy
 
 class Multiplicity(namedtuple('Multiplicity', 'eigvals algebraic geometric'.split())):
-  '''Represents the multiplicity of eigenvalues
+  '''A named tuple representing the multiplicities of eigenvalues in a matrix.
 
-  Overloaded namedtuple. Contains an eigvals-array, the algebraic multiplicity, and the geometric
-  multiplicity. 
+  This class stores distinct eigenvalues along with their algebraic and geometric multiplicities.
+  It provides methods for applying functions to eigenvalues and computing properties like trace,
+  determinant, rank, and a normalization factor.
 
   Attributes
   ----------
-  eigvals : array-like
-    An array of distinct eigenvalues
-  algebraic : array-like
-    An array of the algebraic multiplicity of the respective eigvals. The kth multiplicity belongs to the kth eigenvalue.
-  geometric : array-like
-    An array of the geometric multiplicity of the respective eigvals. The kth multiplicity belongs to the kth eigenvalue.
+  eigvals : np.ndarray
+    An array containing distinct eigenvalues of the matrix.
+  algebraic : np.ndarray
+    The algebraic multiplicity of each corresponding eigenvalue.
+  geometric : np.ndarray
+    The geometric multiplicity of each corresponding eigenvalue.
   '''
   def __new__(cls, eigvals: np.ndarray, algebraic: np.ndarray, geometric: np.ndarray):
-    return super(Multiplicity, cls).__new__(cls, eigvals, algebraic, geometric)
+    '''Constructor for the Multiplicity class.
 
+    Parameters
+    ----------
+    eigvals : np.ndarray
+      Distinct eigenvalues of the matrix.
+    algebraic : np.ndarray
+      Algebraic multiplicities of each eigenvalue.
+    geometric : np.ndarray
+      Geometric multiplicities of each eigenvalue.
+
+    Returns
+    -------
+    Multiplicity
+      A named tuple containing eigenvalues and their multiplicities.
+    '''
+    return super(Multiplicity, cls).__new__(cls, eigvals, algebraic, geometric)
+  
   def map(self, f, *dfs, gen_df=None, **kwargs):
-    '''Maps the eigenvalues over the function.
+    '''Maps a function (and derivatives) to the eigenvalues.
+
+    This method applies `f` and its derivatives to each eigenvalue according to its
+    algebraic multiplicity.
 
     Parameters
     ----------
     f : function
-      A function which is applied on the eigenvalues.
-    dfs : function
-      The 1st, 2nd, 3rd, ... derivatives of `f` which may be applied on the eigenvalues.
-    gen_df : function -> function
-      gen_df(k) should generate the kth derivative. Using dfs takes precedance over using gen_df.
-      If gen_df is `None` then `numdifftools.Derivative` is used.
+      The function to apply to the eigenvalues.
+    dfs : tuple of functions, optional
+      Precomputed derivatives of `f`, if available.
+    gen_df : function, optional
+      A function that generates higher-order derivatives when needed. gen_df(k) should generate
+      the kth derivative. Using dfs takes precedance over using gen_df. If gen_df is `None` then
+      `numdifftools.Derivative` is used.
 
     Returns
     -------
-    Ret : ndarray
+    ndarray
       (f(ev0), f'(ev0), f''(ev0), ..., f(ev1), f'(ev1), f''(ev1), ...)
       
     Notes
@@ -44,30 +65,31 @@ class Multiplicity(namedtuple('Multiplicity', 'eigvals algebraic geometric'.spli
     See also `ev_iter` for further details on the order.
     '''
     diff_count = np.max(self.algebraic)
-    fs = [f] + list(dfs[:diff_count-1])
+    fs = [f] + list(dfs[:diff_count - 1])
+
     if len(fs) < diff_count:
-      if gen_df is None:
-        k0 = len(fs)-1
-        gen_df = lambda i, **_: nd.Derivative(fs[k0], n=i-k0, order=2*1)
-      for i in range(len(fs), diff_count):
-        fs.append(gen_df(i))
+        if gen_df is None:
+            k0 = len(fs) - 1
+            gen_df = lambda i, **_: nd.Derivative(fs[k0], n=i - k0, order=2 * 1)
+        for i in range(len(fs), diff_count):
+            fs.append(gen_df(i))
+
     ret = [fs[k](ev) for _, ev, _, k in self.ev_iter]
     return np.array(ret)
 
   @property
   def ev_iter(self):
-    '''An iterator over the eigenvalues and the multiplicity.
+    '''Iterate over eigenvalues and their multiplicities.
 
     Returns
     -------
-    (i, ev, alg, k) : (int, float|complex, int, int)
-      i : The index of the eigenvalue, outer iterator
-      ev : The ith eigenvalue
-      alg : The algebraic of the kth eigen value
-      k : A counter from 0..alg-1, inner iterator
+    generator
+      Yields (eigenvalue index, eigenvalue, algebraic multiplicity, counter of the multiplicity)
+
+      The inner iteration is through the multiplicity and the outer iterator is through the
+      eigenvalues.
     '''
     return ((i, ev, alg, k) for i, (ev, alg) in enumerate(zip(self.eigvals, self.algebraic)) for k in range(alg))
-
 
   @property
   def tr(self):
@@ -91,41 +113,66 @@ class Multiplicity(namedtuple('Multiplicity', 'eigvals algebraic geometric'.spli
 
   @property
   def product_norm(self):
-    '''A norm-similar quantity which may be used to normalize the corresponding matrix
+    '''Compute a norm-like quantity used for matrix normalization.
 
-    If all eigenvalues are non-zero then abs(det)**(1/dim) is returned.
-    If some but not all eigenvalues are non-zero then the `product_norm` for the matrix with the
-    kernel-space is returned.
-    If 0 is the only eigenvalue then 1 is returned.
+    - If all eigenvalues are nonzero, returns `|det|^(1/dim)`.
+    - If some but not all eigenvalues are nonzero, returns `product_norm` of the nonzero part.
+    - If the only eigenvalue is 0, returns 1.
+
+    Returns
+    -------
+    float
+      Computed normalization value.
     '''
-    if np.all(self.eigvals==0):
-      return np.ones_like(self.eigvals[0])
-    elif np.any(self.eigvals==0):
-      inds = self.eigvals!=0
-      return Multiplicity(*(q[inds] for q in self)).product_norm
+    if np.all(self.eigvals == 0):
+        return np.ones_like(self.eigvals[0])
+    elif np.any(self.eigvals == 0):
+        inds = self.eigvals != 0
+        return Multiplicity(*(q[inds] for q in self)).product_norm
     else:
-      e = self.algebraic/np.sum(self.algebraic)
-      return np.prod(np.abs(self.eigvals) ** e)
+        e = self.algebraic / np.sum(self.algebraic)
+        return np.prod(np.abs(self.eigvals) ** e)
 
   @staticmethod
-  def from_matrix(M: np.ndarray, eigvals: np.ndarray | None =None, **kwargs):
-    'See eigval_multiplicity for details'
+  def from_matrix(M: np.ndarray, eigvals: np.ndarray | None = None, **kwargs):
+    '''Create a `Multiplicity` instance from a given matrix.
+
+    Parameters
+    ----------
+    M : np.ndarray
+      The input matrix.
+    eigvals : np.ndarray, optional
+      Precomputed eigenvalues. If `None`, they are computed automatically.
+
+    Returns
+    -------
+    Multiplicity
+      A `Multiplicity` instance containing eigenvalue data.
+
+    See also
+    --------
+    `eigval_multiplicity`
+    '''
     return eigval_multiplicity(M=M, eigvals=eigvals, **kwargs)
 
 
 def matrix_power_series(M: np.ndarray, stop: int):
-  '''A series of matrix powers.
+  '''Compute a sequence of matrix powers up to a given order.
+
+  This function efficiently computes powers of a square matrix up to `stop - 1` using recursive
+  squaring to reduce computational complexity.
 
   Parameters
   ----------
-  M : NxN-array
-    The matrix
+  M : np.ndarray
+    A square matrix whose powers need to be computed.
   stop : int
-    The exclusive upper bound for the series.
+    The exclusive upper bound to compute in the series.
 
   Returns
   -------
-  series: [ndarray]
+  np.ndarray
+    An array containing matrices from the identity matrix (I) to M^(stop-1).
   '''
   shape = np.shape(M)
   assert len(shape)==2 and shape[0]==shape[1], 'M is not a square matrix'
@@ -138,20 +185,22 @@ def matrix_power_series(M: np.ndarray, stop: int):
   return np.array(ret)[:max(stop, 0)]
 
 def eigval_multiplicity(M: np.ndarray, eigvals: np.ndarray | None =None, zero_thrsh = 1e-15, rel_eq_thrsh = 1e-8):
-  '''Algebraic and geometric multiplicity of the eigen values.
+  '''Compute the algebraic and geometric multiplicities of eigenvalues.
+
+  This function determines the distinct eigenvalues of a given matrix, their algebraic
+  multiplicities, and geometric multiplicities (dimension of the eigenspaces).
 
   Parameters
   ----------
-  M : NxN-array
-    The matrix
-  eigvals : Optional[ndarray] = None
-    The eigen values of M. If `None` then `np.linalg.eigvals` is used
+  M : np.ndarray
+    A square matrix whose eigenvalues are analyzed.
+  eigvals : np.ndarray, optional
+    Precomputed eigenvalues of the matrix. If None, they are computed internally.
   zero_thrsh : float = 1e-15
-    A threshold determining whether an eigenvalue is considered to be 0. Set to 0 if only 0 itself
-    should be considered a vanishing eigen value.
+    Threshold below which eigenvalues are considered zero. Set to 0 if only 0 itself should be
+    considered a vanishing eigenvalue.
   rel_eq_thrsh : float = 1e-8
-    A threshold determining whether two non-zero eigenvalues are considered to be equal. Values are
-    considered different if abs(ev1/ev2 - 1) > `rel_eq_thrsh`.
+    Relative threshold for treating eigenvalues as identical.
 
   Returns
   -------
@@ -196,18 +245,21 @@ def eigval_multiplicity(M: np.ndarray, eigvals: np.ndarray | None =None, zero_th
   return ret
 
 def b_matrix(multiplicity: Multiplicity):
-  '''A special matrix for constructing the `phi` tensor
+  '''Construct the basis matrix `phi` for function approximation using eigenvalue decomposition.
+
+  This function generates a matrix used to solve for function coefficients when applying matrix
+  functions.
 
   Parameters
   ----------
   multiplicity : Multiplicity
-    Multiplicity of the eigenvalues
+    Eigenvalue multiplicity structure computed from a matrix.
 
   Returns
   -------
-  b: ndarray
-    Intended to be used like `cs = scipy.linalg.solve(b, matrix_power_series(M, len(b)))`. See also
-    the example.
+  np.ndarray
+    A transformation matrix for function coefficient computation. Intended to be used like
+    `cs = scipy.linalg.solve(b, matrix_power_series(M, len(b)))`. See also the example.
 
   Example
   -------
@@ -248,16 +300,21 @@ def b_matrix(multiplicity: Multiplicity):
   return ret
 
 def function_coeffs(M: np.ndarray, eigvals:np.ndarray|None|Multiplicity=None, normalize_to:float|None=1.):
-  '''TODO.
+  '''Compute coefficients for matrix function computation.
+
+  This function determines the necessary coefficients to compute functions applied to matrices,
+  leveraging eigenvalue decomposition.
 
   Parameters
   ----------
-  M : NxN-array
-    The matrix
-  eigvals : Optional[ndarray|Multiplicity] = None
-    The eigen values of M. If it is not of type Multiplicity then it is calculated using
-    `eigval_multiplicity`
-  normalize_to : Optional[float] = 1.
+  M : np.ndarray
+    The input square matrix.
+  eigvals : np.ndarray or Multiplicity, optional
+    Precomputed eigenvalues or their multiplicities. If it is not of type Multiplicity then it is
+    calculated using `eigval_multiplicity`
+  normalize_to : float, optional, default=1.
+    Scaling factor to normalize eigenvalues, improving numerical stability.
+
     To achieve better accuracy the `M` is rescaled such that the eigenvalues are approximately of
     size `normalize_to`. In particular, for a non-singular Matrix its determinate will be rescaled
     to `normalize_to`. Setting `normalize_to` to `None` skips the normalization step.
@@ -293,28 +350,39 @@ def function_coeffs(M: np.ndarray, eigvals:np.ndarray|None|Multiplicity=None, no
   return cs, ev_mult
 
 def apply_fn(M: np.ndarray, f, *dfs, gen_df=None, eigvals:np.ndarray|None|Multiplicity=None, coeffs:np.ndarray|None=None, normalize_to:float|None=1., **kwargs):
-  '''Applies the function `f` to the matrix `M`
+  '''Apply a scalar function to a matrix using spectral decomposition.
 
   If `eigvals` is of type Multiplicity and `coeffs` is provided then `M` is ignored and the
   function is applied directly.
 
   Parameters
   ----------
-  M : NxN-array
-    The matrix
+  M : np.ndarray
+    The square matrix to transform.
   f : function
-    A function which is applied on the eigenvalues.
+    A function which is applied on the eigenvalues. Can be a predefined function like 'exp', 'log',
+    etc. If a supported function is provided `dfs` and `gen_df` are ignored.
+
+    Full list of supported predefined functions:
+    - `exp`
+    - `log` or `ln`
+    - `inv`
+    - `sin`, and `cos`
+    - `sqrt`
   dfs : function
-    The 1st, 2nd, 3rd, ... derivatives of `f` which may be applied on the eigenvalues.
-  gen_df : Optional[function -> function] = None
-    gen_df(k) should generate the kth derivative. Using dfs takes precedance over using gen_df.
-    If gen_df is `None` then `numdifftools.Derivative` is used.
+    Precomputed derivatives of `f`, if available.
+  gen_df : function, optional
+    A function that generates higher-order derivatives when needed. gen_df(k) should generate
+    the kth derivative. Using dfs takes precedance over using gen_df. If gen_df is `None` then
+    `numdifftools.Derivative` is used.
   eigvals : Optional[ndarray|Multiplicity] = None
-    The eigen values of M. If it is not of type Multiplicity then it is calculated using
-    `eigval_multiplicity`
+    Precomputed eigenvalues or their multiplicities. If it is not of type Multiplicity then it is
+    calculated using `eigval_multiplicity`
   cs : Optional[ndarray]
     The `phi`-tensor. See also `function_coeffs`
   normalize_to : Optional[float] = 1.
+    Scaling factor to normalize eigenvalues, improving numerical stability.
+
     To achieve better accuracy the `M` is rescaled such that the eigenvalues are approximately of
     size `normalize_to`. In particular, for a non-singular Matrix its determinate will be rescaled
     to `normalize_to`. Setting `normalize_to` to `None` skips the normalization step.
@@ -322,7 +390,7 @@ def apply_fn(M: np.ndarray, f, *dfs, gen_df=None, eigvals:np.ndarray|None|Multip
   Returns
   -------
   f_M: ndarray
-    The result of applying `f` to `M`.
+    The matrix after applying the function `f`.
 
   Example
   -------
