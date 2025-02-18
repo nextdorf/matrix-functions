@@ -38,7 +38,7 @@ class Multiplicity(namedtuple('Multiplicity', 'eigvals algebraic geometric'.spli
     '''
     return super(Multiplicity, cls).__new__(cls, eigvals, algebraic, geometric)
   
-  def map(self, f, *dfs, gen_df=None, **kwargs):
+  def map(self, f, *dfs, gen_df=None, mult_space='min', **kwargs):
     '''Maps a function (and derivatives) to the eigenvalues.
 
     This method applies `f` and its derivatives to each eigenvalue according to its
@@ -68,28 +68,43 @@ class Multiplicity(namedtuple('Multiplicity', 'eigvals algebraic geometric'.spli
     fs = [f] + list(dfs[:diff_count - 1])
 
     if len(fs) < diff_count:
-        if gen_df is None:
-            k0 = len(fs) - 1
-            gen_df = lambda i, **_: nd.Derivative(fs[k0], n=i - k0, order=2 * 1)
-        for i in range(len(fs), diff_count):
-            fs.append(gen_df(i))
+      if gen_df is None:
+        k0 = len(fs) - 1
+        gen_df = lambda i, **_: nd.Derivative(fs[k0], n=i - k0, order=2 * 1)
+      for i in range(len(fs), diff_count):
+        fs.append(gen_df(i))
 
-    ret = [fs[k](ev) for _, ev, _, k in self.ev_iter]
+    #TODO: vectorize
+    ev_iter = self.ev_iter(mult_space)
+    ret = [fs[k](ev) for _, ev, _, k in ev_iter]
     return np.array(ret)
 
-  @property
-  def ev_iter(self):
+  def ev_iter(self, mult_space='min'):
     '''Iterate over eigenvalues and their multiplicities.
+
+    Parameters
+    ----------
+    mult_space : str
+      TODO
 
     Returns
     -------
     generator
-      Yields (eigenvalue index, eigenvalue, algebraic multiplicity, counter of the multiplicity)
+      Yields (eigenvalue index, eigenvalue, multiplicity, counter of the multiplicity)
 
       The inner iteration is through the multiplicity and the outer iterator is through the
       eigenvalues.
     '''
-    return ((i, ev, alg, k) for i, (ev, alg) in enumerate(zip(self.eigvals, self.algebraic)) for k in range(alg))
+    return ((i, ev, mult, k) for i, (ev, mult) in enumerate(zip(self.eigvals, self._multiplicity(mult_space))) for k in range(mult))
+
+  def _multiplicity(self, mult_space='min'):
+    if mult_space == 'min':
+      return self.algebraic - self.geometric + 1
+    elif mult_space == 'full':
+      return self.algebraic
+    else:
+      raise ValueError(f'Unsupported mult_space "{mult_space}"')
+
 
   @property
   def tr(self):
@@ -111,8 +126,7 @@ class Multiplicity(namedtuple('Multiplicity', 'eigvals algebraic geometric'.spli
     'The rank'
     return np.sum(self.algebraic - self.geometric + 1)
 
-  @property
-  def product_norm(self):
+  def product_norm(self, mult_space='min'):
     '''Compute a norm-like quantity used for matrix normalization.
 
     - If all eigenvalues are nonzero, returns `|det|^(1/dim)`.
@@ -125,13 +139,14 @@ class Multiplicity(namedtuple('Multiplicity', 'eigvals algebraic geometric'.spli
       Computed normalization value.
     '''
     if np.all(self.eigvals == 0):
-        return np.ones_like(self.eigvals[0])
+      return np.ones_like(self.eigvals[0])
     elif np.any(self.eigvals == 0):
-        inds = self.eigvals != 0
-        return Multiplicity(*(q[inds] for q in self)).product_norm
+      inds = self.eigvals != 0
+      return Multiplicity(*(q[inds] for q in self)).product_norm(mult_space)
     else:
-        e = self.algebraic / np.sum(self.algebraic)
-        return np.prod(np.abs(self.eigvals) ** e)
+      mult = self._multiplicity(mult_space)
+      e = mult / np.sum(mult)
+      return np.prod(np.abs(self.eigvals) ** e)
 
   @staticmethod
   def from_matrix(M: np.ndarray, eigvals: np.ndarray | None = None, **kwargs):
@@ -244,7 +259,7 @@ def eigval_multiplicity(M: np.ndarray, eigvals: np.ndarray | None =None, zero_th
   ret = Multiplicity(unique_eigvals, alg_mult, geom_mult)
   return ret
 
-def b_matrix(multiplicity: Multiplicity):
+def b_matrix(multiplicity: Multiplicity, mult_space='min'):
   '''Construct the basis matrix `phi` for function approximation using eigenvalue decomposition.
 
   This function generates a matrix used to solve for function coefficients when applying matrix
@@ -279,27 +294,18 @@ def b_matrix(multiplicity: Multiplicity):
   >>> #The expected rounding error is of order 1.11e-16 * order of biggest values * sqrt(number of calculation steps in that biggest order)
   np.float64(2.0755569795398968e-15)
   '''
-
-  #TODO: use the iterator of multiplicity
-  evs, alg, _ = multiplicity
-  nEigvals = np.sum(alg)
-  ret = np.zeros((nEigvals, nEigvals), dtype=evs.dtype)
-  max_order = np.max(alg)
-  inds0 = np.array([sum(alg[:i]) for i in range(len(alg))])
-  val0 = np.concat([evs.reshape((-1, 1))**np.arange(nEigvals-1, 0, -1), np.ones((len(evs), 1), dtype=evs.dtype)], axis=1)
-  for order in range(1, max_order+1):
-    if order == 1:
-      inds, val = inds0, val0
-    else:
-      evs_selection = alg >= order
-      inds = (inds0 + order - 1)[evs_selection]
-      val1 = val0[evs_selection, (order - 1):]
-      val_fac = (np.arange(nEigvals-order+1, 0, -1).reshape((-1,1)) + np.arange(order-1).reshape((1, -1))).prod(axis=-1)
-      val = np.concat([val1*val_fac, np.zeros((sum(evs_selection), order - 1), dtype=evs.dtype)], axis=1)
-    ret[inds, :] = val
+  ret = []
+  ev_iter = list(multiplicity.ev_iter(mult_space))
+  dim = len(ev_iter)
+  for (_, ev, mult, k) in ev_iter:
+    val0 = np.concat([ev**np.arange(dim-1-k, 0, -1), [1]])
+    val_fac = (np.arange(dim-k, 0, -1).reshape((-1, 1)) + np.arange(k).reshape((1, -1))).prod(axis=-1)
+    val = np.concat([val0 * val_fac, [0]*k])
+    ret.append(val)
+  ret = np.array(ret)
   return ret
 
-def function_coeffs(M: np.ndarray, eigvals:np.ndarray|None|Multiplicity=None, normalize_to:float|None=1.):
+def function_coeffs(M: np.ndarray, eigvals:np.ndarray|None|Multiplicity=None, mult_space='min', normalize_to:float|None=1.):
   '''Compute coefficients for matrix function computation.
 
   This function determines the necessary coefficients to compute functions applied to matrices,
@@ -332,20 +338,22 @@ def function_coeffs(M: np.ndarray, eigvals:np.ndarray|None|Multiplicity=None, no
   '''
 
   # Idea behind the normalization: f(A) = f(sx) with x=A/s
+  #TODO: Allow for reduced multiplicity
   if isinstance(eigvals, Multiplicity):
     ev_mult = eigvals
   else:
     ev_mult = eigval_multiplicity(M, eigvals)
   if normalize_to is not None:
-    norm_scale = ev_mult.product_norm*normalize_to**(1/ev_mult.dim)
+    ev_iter = list(ev_mult.ev_iter(mult_space))
+    norm_scale = ev_mult.product_norm(mult_space)/normalize_to**(1/len(ev_iter))
     _ev_mult = Multiplicity(ev_mult.eigvals/norm_scale, *ev_mult[1:])
     _M = M/norm_scale
-    cs_rescale = np.array([np.ones_like(norm_scale) if k==0 else norm_scale**k for _,_,_,k in ev_mult.ev_iter])
-    b = b_matrix(_ev_mult)[:, ::-1].T
+    cs_rescale = np.array([np.ones_like(norm_scale) if k==0 else norm_scale**k for _,_,_,k in ev_iter])
+    b = b_matrix(_ev_mult, mult_space=mult_space)[:, ::-1].T
     _cs = scipy.linalg.solve(b, matrix_power_series(_M, len(b)))
     cs = cs_rescale.reshape((-1, 1, 1)) * _cs
   else:
-    b = b_matrix(ev_mult)[:, ::-1].T
+    b = b_matrix(ev_mult, mult_space=mult_space)[:, ::-1].T
     cs = scipy.linalg.solve(b, matrix_power_series(M, len(b)))
   return cs, ev_mult
 
@@ -436,8 +444,10 @@ def apply_fn(M: np.ndarray, f, *dfs, gen_df=None, eigvals:np.ndarray|None|Multip
   if coeffs is not None and isinstance(eigvals, Multiplicity):
     cs, ev_mult = coeffs, eigvals
   else:
-    cs, ev_mult = function_coeffs(M, eigvals, normalize_to)
-  ret = np.tensordot(ev_mult.map(f, *dfs, gen_df=gen_df, **kwargs), cs, 1)
+    _kwargs = {k: kwargs[k] for k in 'mult_space'.split() if k in kwargs}
+    cs, ev_mult = function_coeffs(M, eigvals, normalize_to=normalize_to, **_kwargs)
+  f_ev_mult = ev_mult.map(f, *dfs, gen_df=gen_df, **kwargs)
+  ret = np.tensordot(f_ev_mult, cs, ((0, ), (0, )))
   return ret
 
 
@@ -450,9 +460,10 @@ M[t,t] = (1,2,2,3,3,4,4,4,4,4)
 M[t[:-1],t[1:]] = (0,0,0,1,0,1,1,1,0)
 # M = np.array(((2, 0), (0, 3)))
 # M = np.array(((1, 1), (-1, 1)))
+# M = np.array(((2, 0), (0, 2)))
 # M = np.array(((2, 1), (0, 2)))
 
-M = np.random.randn(20, 20, 2) @ [1, 1j]
+# M = np.random.randn(20, 20, 2) @ [1, 1j]
 
 M
 evs = np.linalg.eigvals(M)
@@ -485,7 +496,7 @@ err(sqrt_M_2 @ sqrt_M_2, M)
 
 log_M = apply_fn(M, 'log')
 log_ev_mult = eigval_multiplicity(log_M)
-log_ev_mult.product_norm
+log_ev_mult.product_norm()
 # np.linalg.norm(np.linalg.eigvals(log_M) - np.log(evs))
 # np.linalg.norm(apply_fn(log_M, 'exp') - M)
 # np.linalg.norm(apply_fn(2*log_M, 'exp') - M @ M)
