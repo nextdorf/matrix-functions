@@ -1,8 +1,7 @@
 import numpy as np
 from collections import namedtuple
 import scipy
-from .utils import matrix_power_series, Multiplicity, function_coeffs, apply_fn
-from .utils._fcoeffs import err
+from .utils import matrix_power_series, Multiplicity, function_coeffs, apply_fn, err
 from warnings import warn
 
 def bare_coeffs(tensor: np.ndarray, basis: np.ndarray, assume_normed = False, normalize_to: float|None=1.):
