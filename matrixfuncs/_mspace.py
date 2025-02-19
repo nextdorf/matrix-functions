@@ -54,16 +54,20 @@ class MSpace:
     A tensor for calculating any matrix function efficiently
   '''
 
-  def __init__(self, M: np.ndarray, eigvals: np.ndarray|None = None):
+  def __init__(self, M: np.ndarray, eigvals: np.ndarray|Multiplicity|None = None):
     def test(name:str, val, ref):
       if not np.allclose(val, ref):
         err_val = err(val, ref)
         warn(f'Error of {name} is high, relative error is {err_val}')
 
     self.M = np.array(M)
-    self.eigvals = np.linalg.eigvals(self.M) if not eigvals else eigvals
+    self.eigvals = (
+      np.linalg.eigvals(self.M) if eigvals is None
+      else eigvals.full_eigvals if isinstance(eigvals, Multiplicity)
+      else eigvals
+    )
     self.__normed_basis = MSpace.Normed_Basis(self.M)
-    self.multiplicity = Multiplicity.from_matrix(self.M, self.eigvals)
+    self.multiplicity = Multiplicity.from_matrix(self.M, self.eigvals) if not isinstance(eigvals, Multiplicity) else eigvals
     dim = self.dim
     _dim = np.sum(self.multiplicity.algebraic - self.multiplicity.geometric + 1)
     assert dim == _dim, 'Inconsistent dimension count between basis dimension and eigenvalue multiplicity'

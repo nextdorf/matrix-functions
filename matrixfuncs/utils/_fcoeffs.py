@@ -36,7 +36,7 @@ class Multiplicity(namedtuple('Multiplicity', 'eigvals algebraic geometric'.spli
     Multiplicity
       A named tuple containing eigenvalues and their multiplicities.
     '''
-    return super(Multiplicity, cls).__new__(cls, eigvals, algebraic, geometric)
+    return super(Multiplicity, cls).__new__(cls, np.asarray(eigvals), np.asarray(algebraic), np.asarray(geometric))
   
   def map(self, f, *dfs, gen_df=None, mult_space='min', **kwargs):
     '''Maps a function (and derivatives) to the eigenvalues.
@@ -110,6 +110,11 @@ class Multiplicity(namedtuple('Multiplicity', 'eigvals algebraic geometric'.spli
   def tr(self):
     'The trace'
     return self.eigvals @ self.algebraic
+
+  @property
+  def full_eigvals(self):
+    'All eigenvalues'
+    return np.array([ev for _,ev,_,_ in self.ev_iter('full')])
 
   @property
   def det(self):
@@ -221,6 +226,7 @@ def eigval_multiplicity(M: np.ndarray, eigvals: np.ndarray | None =None, zero_th
   -------
   mult: Multiplicity
   '''
+  # TODO: This seems to be extremely instable for eigenvalues which are close but not equal, however fcoeffs.dim seems to do a good job in finding the dimension
   if eigvals is None:
     eigvals = np.linalg.eigvals(M)
   else:
@@ -423,7 +429,8 @@ def apply_fn(M: np.ndarray, f, *dfs, gen_df=None, eigvals:np.ndarray|None|Multip
       f = np.exp
       gen_df = lambda _: np.exp
     elif f in 'log ln'.split():
-      f = np.log
+      _0 = np.array(0j)
+      f = lambda x: np.log(x + _0)
       gen_df = lambda k: (lambda x: np.prod(-np.arange(1, k))/x**k)
     elif f == 'inv':
       f = lambda x: x**-1
@@ -437,7 +444,8 @@ def apply_fn(M: np.ndarray, f, *dfs, gen_df=None, eigvals:np.ndarray|None|Multip
       _dfs = [np.cos, lambda x: -np.sin(x), lambda x: -np.cos(x), np.sin]
       gen_df = lambda k: _dfs[k%4]
     elif f == 'sqrt':
-      f = np.sqrt
+      _0 = np.array(0j)
+      f = lambda x: np.sqrt(x + _0)
       gen_df = lambda k: (lambda x: np.prod(np.arange(.5, 1-k, -1))/x**(k-.5))
     else:
       raise ValueError(f'Unknown function f={f}')

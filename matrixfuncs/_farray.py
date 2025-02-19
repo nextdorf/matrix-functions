@@ -12,8 +12,10 @@ class FArray:
 
   @staticmethod
   def from_matrix(M: np.ndarray, **kwargs):
-    space = MSpace(M, **kwargs)
-    return FArray(space, **kwargs)
+    _kwargs = {k: kwargs[k] for k in 'eigvals'.split() if k in kwargs}
+    space = MSpace(M, **_kwargs)
+    _kwargs = {k: kwargs[k] for k in 'mult_space bare stay_lifted'.split() if k in kwargs}
+    return FArray(space, **_kwargs)
 
   def __call__(self, f, *dfs, gen_df=None, stay_lifted=None, real_if_close='auto', **kwargs):
     ret = apply_fn(M=None, f=f, dfs=dfs, gen_df=gen_df, eigvals=self.space.multiplicity, coeffs=self.bare, mult_space=self.mult_space, **kwargs)
