@@ -1,5 +1,5 @@
-from ._sym_krylov import SymKrylovSpaceCache, SymKrylovSpace
-from ._krylov import KrylovSpace
-from ._func import MFunc
-
+from . import utils
+from .utils import apply_fn, Multiplicity
+from ._mspace import MSpace
+from ._farray import FArray
 
