@@ -70,7 +70,7 @@ jobs:
         uses: typst-community/setup-typst@v4
       - run: |
           cd typst
-          typst compile matrixfunctions-docu.typ
+          typst compile matrix-functions-docu.typ
           cd
       - name: Upload documentation
         uses: actions/upload-artifact@v4
