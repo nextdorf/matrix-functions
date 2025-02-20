@@ -27,6 +27,9 @@
   let aligned = math.equation(block: true, numbering: none, esf.fold([], folder))
 
   hidden
-  style(s => v(-measure(hidden, s).height, weak: true))
+  // style(s => v(-measure(hidden, s).height, weak: true))
+  context {
+    v(-measure(hidden).height, weak: true)
+  }
   aligned
 }
