@@ -38,7 +38,6 @@ jobs:
   # act --pull=false -P ubuntu-latest=catthehacker/ubuntu:act-latest --job="build"
   build:
     runs-on: ubuntu-latest
-    if: github.triggering_actor == 'nextdorf'
     steps:
       - uses: actions/checkout@v4
 
@@ -63,11 +62,28 @@ jobs:
           name: python-package
           path: dist
 
+  build-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile Typst
+        uses: typst-community/setup-typst@v4
+      - run: |
+          cd typst
+          typst compile matrixfunctions-docu.typ
+          cd
+      - name: Upload documentation
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-package-documentation
+          path: typst/matrix-functions-docu.pdf
+
   release:
     runs-on: ubuntu-latest
+    if: github.triggering_actor == 'nextdorf'
     permissions:
       contents: write
-    needs: build
+    needs: [build, build-docs]
     steps:
       - name: Download
         uses: actions/download-artifact@v4
@@ -76,6 +92,7 @@ jobs:
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/*
+          files: |
+            dist/*
           draft: false
           prerelease: false
