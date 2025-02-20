@@ -90,4 +90,4 @@ bx.grid(True)
 
 # Display and save the plot
 plt.show(fig)
-fig.savefig('many_frequencies.png', dpi=200, bbox_inches='tight')
+fig.savefig('many_frequencies.svg', dpi=200, bbox_inches='tight')

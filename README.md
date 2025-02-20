@@ -96,7 +96,7 @@ plt.grid(True)
 plt.show(fig)
 fig.savefig('sinFromMFunc.png', dpi=200)
 ```
-![Output of plt.plot(ts, sinFromMFunc)](https://raw.githubusercontent.com/nextdorf/matrix-functions/main/sinFromMFunc.png?raw=true)
+![Output of plt.show(fig)](https://raw.githubusercontent.com/nextdorf/matrix-functions/main/sinFromMFunc.svg?raw=true)
 
 
 ## Documentation

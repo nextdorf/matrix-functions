@@ -155,7 +155,7 @@ Simplifying @sin-ab-numerical yields @sin-ab.
 
 
 #wrap-content(
-  figure(image("../sinFromMFunc.png")),
+  figure(image("../sinFromMFunc.svg")),
   align: right,
 )[
 #box(height: 1em)
@@ -328,12 +328,12 @@ $
 == Example from @ch-sin-generation
 
 #sourcefile(read("../example.py"), file: "example.py",lang: "python")
-#figure(image("../sinFromMFunc.png")),
+#figure(image("../sinFromMFunc.svg")),
 
 == More advanced Fcuntion Continution from random Samples
 
 #sourcefile(read("../examples/many_frequencies.py"), file: "example.py",lang: "python")
-#figure(image("../examples/many_frequencies.png")),
+#figure(image("../examples/many_frequencies.svg"))
 
 // #show: appendices
 
