@@ -1,6 +1,8 @@
-#import "template.typ": minimal-document
+#import "template.typ": minimal-document, appendices
 #import "eq.typ": eq, nonumber
 #import "@preview/ouset:0.2.0": ouset, overset
+#import "@preview/wrap-it:0.1.1": wrap-content
+#import "@preview/codelst:2.0.2": sourcecode, sourcefile
 
 #show: minimal-document.with(
   title: "Documentation for Matrixfuncs",
@@ -80,7 +82,7 @@ $
   q(A) = 1/(lambda_1-lambda_2)[(q(lambda_1) - q(lambda_2))A - (lambda_2 q(lambda_1) - lambda_1 q(lambda_2))bb(1)]
 $
 
-Since the coefficients only depend on $q(lambda_i)$ the formula can be generalized to all functions which are analytic in $lambda_1$ and $lambda_2$. Let $f(x)$ be a analytic in the eigenvalues of $A$:
+Since the coefficients only depend on $q(lambda_i)$ the formula can be generalized to all functions which are analytic in $lambda_1$ and $lambda_2$. Let $f(x)$ be an analytic function in the eigenvalues of $A$:
 
 $
   f(A) = 1/(lambda_1-lambda_2)[(f(lambda_1) - f(lambda_2))A - (lambda_2 f(lambda_1) - lambda_1 f(lambda_2))bb(1)]
@@ -103,7 +105,7 @@ So when $A$ is not diagonal $f(A)$ depends on $f'(lambda)$. In general we will f
 ...
 === Relation to Krylov subspaces <ch-krylov>
 ...
-=== Generating $sin x$ from a difference equation
+=== Generating $sin x$ from a difference equation <ch-sin-generation>
 
 Matrix functions have many applications, but the primary focus of this package is solving difference equations. Assuming you want to consider a multi-dimensional first-order linear recurrence, i.e. a sequence of vectors $(v_i)_(i=0)^infinity subset FF^n$ satisfying the recurrence relation $v_(i+1) = M v_i$ for some matrix $M in FF^(n times n)$. An obvious conclusion is $v_k = M^k v_0$. Using equations @func-2dim or @func-2dim-1eigval, we can express $M^k$ without any matrix multiplications. Instead we just need to compute $f(lambda) = lambda^k$ for all eigenvalues. As discussed in @ch-krylov, we can precompute $f(M)v_0$ or any other tensor contraction to $f(M)$ before we specify $k$, allowing for efficient evaluation for different or delayed values of $k$.
 
@@ -152,6 +154,18 @@ $ <sin-ab-numerical>
 Simplifying @sin-ab-numerical yields @sin-ab.
 
 
+#wrap-content(
+  figure(image("../sinFromMFunc.png")),
+  align: right,
+)[
+#box(height: 1em)
+
+The example code at #link("https://github.com/nextdorf/matrix-functions/blob/main/example.py")["/example.py"] illustrates how to do the above computation using the library. It generates the figure on the right:
+
+For my examples check out the snippets at #link("https://github.com/nextdorf/matrix-functions/tree/main/examples")["/examples/"] or at @ch-code-examples.
+]
+
+
 == General case <ch-math-general-case>
 
 Similarly to the 2d-case we use the Cayley-Hamilton-theorem: $A in CC^(n times n), p_A (A) = 0$
@@ -177,7 +191,8 @@ In order to solve the recurrence equation @recurrent-ndim, note that $alpha_(m k
   $=& sum_(k=1)^n alpha_(m-k,n-1)Lambda_(n-k)$
   $=& sum_(k=0)^(n-1) alpha_(m-n+k,n-1)Lambda_k$
   $=> 0=& alpha_(m+n, n-1) - sum_(k=0)^(n-1) alpha_(m+k,n-1)Lambda_k$
-  $=& (Delta^n - sum_(k=0)^(n-1) Delta^k Lambda_k) alpha_(m, n-1) wide #[with ] Delta alpha_(m k) = alpha_(m+1, k)$
+  $=& (Delta^n - sum_(k=0)^(n-1) Delta^k Lambda_k) alpha_(m, n-1) wide #grid(rows: (1.25em, 0em), align: left, $#[with ] Delta alpha_(m k) = alpha_(m+1, k)$, [i.e. $Delta$ acts on the first index])$
+  //#[with $Delta alpha_(m k) = alpha_(m+1, k)$ i.e. $Delta$ acts on the first index]$
   $=& p_A (Delta) alpha_(m, n-1)$
   $=& product_(k=1)^r (Delta - lambda_k)^(mu_k) alpha_(m, n-1)\ &#[with $mu_k$ being the algebraic multiplicity of $lambda_k$]$
 ]
@@ -193,8 +208,10 @@ Proof:
   $=& (Delta - lambda)^m ((n+1)^m - n^m) lambda^(n+1) c_m$
   $=& (Delta - lambda)^m lambda^n sum_(k=0)^(m-1) binom(m, k) lambda c_m n^k$
   $=& 0$
-  $=> 0 =& (Delta - lambda)^m lambda^n sum_(k=0)^m' c_k n^k quad forall c_0, ..., c_(m'-1), m > m'$
+  $=> 0 =& (Delta - lambda)^m lambda^n sum_(k=0)^m' c_k n^k quad forall c_0, ..., c_(m'), m > m'$
 ]
+
+What is left to show is that the above solution is general. Considering $(Delta - lambda)^n$ as a linear operator, the solution space we are interested in is effectively the operator's kernel. Thus, the above $n$-dimensional solution is general if the dimension of the operator's kernel is $n$ as well.
 
 Now consider $overline(c)_n = (Delta - lambda) c_n => c_(n+1) = overline(c)_n + lambda c_n = sum_(k=0)^n lambda^k overline(c)_(n-k) + lambda^(n+1) c_0$
 
@@ -214,12 +231,12 @@ $
   => arrow(beta) perp& sum_(k=1)^n hat(e)_k lambda_k^m =: arrow(lambda)^((m)) #[ for ] m = 0 ... n-2, quad #[and ] arrow(beta) dot arrow(lambda)^(n-1) = 1
 $
 
-There are several ways to construct $beta$. Here we will list two ways. The first way relies on some properties of the determinant. It is the approach used in an older version of this package and is often more useful for analytical calculations. It introduces however precision-errors for numerical calculations and becomes unstable for large dimensions and/or eigenvalues.
+// There are several ways to construct $beta$. Here we will list two ways. The first way relies on some properties of the determinant. It is the approach used in an older version of this package and is often more useful for analytical calculations. It introduces however precision-errors for numerical calculations and becomes unstable for large dimensions and/or eigenvalues.
 
-This is why in a more recent version, the change was made to directly finding the orthogonal complement of the space spanned by $arrow(lambda)^((0)), ..., arrow(lambda)^((n-2))$. We expect the orthogonal complement to be of dimension 1, s.t. $beta$'s relation to $arrow(lambda)^((n-1))$ uniquely defines $beta$. In both cases we rely on the fact that $arrow(lambda)^((0)), ..., arrow(lambda)^((n-1))$ are linear independent.
+// This is why in a more recent version, the change was made to directly finding the orthogonal complement of the space spanned by $arrow(lambda)^((0)), ..., arrow(lambda)^((n-2))$. We expect the orthogonal complement to be of dimension 1, s.t. $beta$'s relation to $arrow(lambda)^((n-1))$ uniquely defines $beta$. In both cases we rely on the fact that $arrow(lambda)^((0)), ..., arrow(lambda)^((n-1))$ are linear independent.
 
-#list([
-  *Construction via the determinant*
+// #list([
+//   *Construction via the determinant*
   
   If the rows (or columns) of a matrix are linearly dependent then the matrix is not invertable and its determinant will vanish. On the flip side if the entries are linear independent then the matrix's determinant will be non-zero. Thus, for a set of independent vectors ${w_(k+1), ..., w_n}$ an orthogonal tensor $T$ with
   
@@ -229,25 +246,25 @@ This is why in a more recent version, the change was made to directly finding th
 
   Since $arrow(lambda)^((0)), ..., arrow(lambda)^((n-1))$ are linear independent, we find:
 
-  #math.equation(block: true, numbering: n => "("+[#n]+"a)")[
+  #math.equation(block: true, /*numbering: n => "("+[#n]+"a)"*/)[
     $beta_k =& det(hat(e)_k | arrow(lambda)^((n-2)) | arrow(lambda)^((n-3)) | ... | arrow(lambda)^((0))) / det(arrow(lambda)^((n-1)) | ... | arrow(lambda)^((0)))$
   ]
-], [
-  *Subtracting the span*
+// ], [
+//   *Subtracting the span*
 
-  As elegant the above approach might be, for numerical problems it turns out to be more stable to just spanning the embedding $n$-dimensional vector space by some vectors and then subtracting the spanned space from the embedding space. The subtracted vectors will then only span the orthogonal complement: 
+//   As elegant the above approach might be, for numerical problems it turns out to be more stable to just spanning the embedding $n$-dimensional vector space by some vectors and then subtracting the spanned space from the embedding space. The subtracted vectors will then only span the orthogonal complement: 
 
-  Consider some arbitrary vectors $(v_1, v_2, ...)$ with $"span"(v_1, v_2, ...) = FF^n$, and define:
+//   Consider some arbitrary vectors $(v_1, v_2, ...)$ with $"span"(v_1, v_2, ...) = FF^n$, and define:
 
-  #nonumber($v'_i =& v_i - sum_(m=0)^(n-2) arrow(lambda)^((m)) (arrow(lambda)^((m)) dot v_i)/(arrow(lambda)^((m)) dot arrow(lambda)^((m)))$)
+//   #nonumber($v'_i =& v_i - sum_(m=0)^(n-2) arrow(lambda)^((m)) (arrow(lambda)^((m)) dot v_i)/(arrow(lambda)^((m)) dot arrow(lambda)^((m)))$)
 
-  #math.equation(block: true, numbering: n => "("+[#(n - 1)]+"b)")[
-    $=> "span"(arrow(beta)) =& "span"(v'_1, v'_2, ...)$
-  ]
+//   #math.equation(block: true, numbering: n => "("+[#(n - 1)]+"b)")[
+//     $=> "span"(arrow(beta)) =& "span"(v'_1, v'_2, ...)$
+//   ]
 
-  The condition $arrow(beta) dot arrow(lambda)^((n-1)) ouset(=,!) 1$ fixes the scale of $beta$.
-])
-#counter(math.equation).update(n => n - 1)
+//   The condition $arrow(beta) dot arrow(lambda)^((n-1)) ouset(=,!) 1$ fixes the scale of $beta$.
+// ])
+// #counter(math.equation).update(n => n - 1)
 
 @recurrent-ndim yields for $alpha_(m k)$:
 
@@ -255,7 +272,7 @@ $
   alpha_(m k) = sum_(j=1)^(k+1) alpha_(m-j, n-1) Lambda_(k+1-j) = sum_(j=1)^(k+1) arrow(beta) dot arrow(lambda)^((m-j)) Lambda_(k+1-j)
 $
 
-As in the two dimensional case this defines $f(A)$ if $f$ is analytic in the eigenvalues of $A$. If none of the eigenvalues is $0$:
+As in the two dimensional case this defines $f(A)$ if $f$ is analytic in the eigenvalues of $A$:
 
 #eq[
   $A^m =& sum_(k=0) A^k sum_(j=1)^(k+1) Lambda_(k+1-j) sum_(l=1)^r sum_(p=0)^(min(mu_l-1, m-j)) overline(beta)_(l p) lambda_l^(m-j-p) (m-j)!/((m-j-p)!)$
@@ -306,4 +323,12 @@ $
 // $
 //   N_0 = bb(1), quad N_(k+1) = (A N_k - sum_(j=0)^k N_j sdot(N_j, A N_k))/norm(A N_k - sum_(j=0)^k N_j sdot(N_j, A N_k))
 // $
+
+= Code Examples <ch-code-examples>
+== Example from @ch-sin-generation
+
+#sourcefile(read("../example.py"), file: "example.py",lang: "python")
+#figure(image("../sinFromMFunc.png")),
+
+// #show: appendices
 

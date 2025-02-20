@@ -130,21 +130,22 @@
   body
 }
 
-// #let arkheion-appendices(body) = {
-//   counter(heading).update(0)
-//   counter("appendices").update(1)
+#let appendices(body) = {
+  counter(heading).update(0)
+  counter("appendices").update(1)
 
-//   set heading(
-//     numbering: (..nums) => {
-//       let vals = nums.pos()
-//       let value = "ABCDEFGHIJ".at(vals.at(0) - 1)
-//       if vals.len() == 1 {
-//         return "APPENDIX " + value
-//       }
-//       else {
-//         return value + "." + nums.pos().slice(1).map(str).join(".")
-//       }
-//     }
-//   );
-//   [#pagebreak() #body]
-// }
+  set heading(
+    numbering: (..nums) => {
+      let vals = nums.pos()
+      let value = "ABCDEFGHIJ".at(vals.at(0) - 1)
+      if vals.len() == 1 {
+        return "APPENDIX " + value
+      }
+      else {
+        return value + "." + nums.pos().slice(1).map(str).join(".")
+      }
+    }
+  );
+  [#pagebreak() #body]
+}
+
