@@ -50,6 +50,8 @@ class Multiplicity(namedtuple('Multiplicity', 'eigvals algebraic geometric'.spli
       The function to apply to the eigenvalues.
     dfs : tuple of functions, optional
       Precomputed derivatives of `f`, if available.
+    mult_space : 'min' | 'full'
+      See `Multiplicity.ev_iter` for details.
     gen_df : function, optional
       A function that generates higher-order derivatives when needed. gen_df(k) should generate
       the kth derivative. Using dfs takes precedance over using gen_df. If gen_df is `None` then
@@ -84,8 +86,10 @@ class Multiplicity(namedtuple('Multiplicity', 'eigvals algebraic geometric'.spli
 
     Parameters
     ----------
-    mult_space : str
-      TODO
+    mult_space : 'min' | 'full'
+      - if 'full' then iterate through algebraic multiplicity
+      - if 'min' then iterate algebraic multiplicity of irreducable representation
+      
 
     Returns
     -------
@@ -98,6 +102,18 @@ class Multiplicity(namedtuple('Multiplicity', 'eigvals algebraic geometric'.spli
     return ((i, ev, mult, k) for i, (ev, mult) in enumerate(zip(self.eigvals, self._multiplicity(mult_space))) for k in range(mult))
 
   def _multiplicity(self, mult_space='min'):
+    '''Effective multiplicity
+
+    Parameters
+    ----------
+    mult_space : 'min' | 'full'
+      - if 'full' then return algebraic multiplicity
+      - if 'min' then return algebraic multiplicity of irreducable representation
+
+    Returns
+    -------
+    ndarray
+    '''
     if mult_space == 'min':
       return self.algebraic - self.geometric + 1
     elif mult_space == 'full':
@@ -137,6 +153,11 @@ class Multiplicity(namedtuple('Multiplicity', 'eigvals algebraic geometric'.spli
     - If all eigenvalues are nonzero, returns `|det|^(1/dim)`.
     - If some but not all eigenvalues are nonzero, returns `product_norm` of the nonzero part.
     - If the only eigenvalue is 0, returns 1.
+
+    Parameters
+    ----------
+    mult_space : 'min' | 'full'
+      See `Multiplicity.ev_iter` for details.
 
     Returns
     -------
@@ -275,6 +296,8 @@ def b_matrix(multiplicity: Multiplicity, mult_space='min'):
   ----------
   multiplicity : Multiplicity
     Eigenvalue multiplicity structure computed from a matrix.
+  mult_space : 'min' | 'full'
+    See `Multiplicity.ev_iter` for details.
 
   Returns
   -------
@@ -324,6 +347,8 @@ def function_coeffs(M: np.ndarray, eigvals:np.ndarray|None|Multiplicity=None, mu
   eigvals : np.ndarray or Multiplicity, optional
     Precomputed eigenvalues or their multiplicities. If it is not of type Multiplicity then it is
     calculated using `eigval_multiplicity`
+  mult_space : 'min' | 'full'
+    See `Multiplicity.ev_iter` for details.
   normalize_to : float, optional, default=1.
     Scaling factor to normalize eigenvalues, improving numerical stability.
 
@@ -344,7 +369,6 @@ def function_coeffs(M: np.ndarray, eigvals:np.ndarray|None|Multiplicity=None, mu
   '''
 
   # Idea behind the normalization: f(A) = f(sx) with x=A/s
-  #TODO: Allow for reduced multiplicity
   if isinstance(eigvals, Multiplicity):
     ev_mult = eigvals
   else:
@@ -363,7 +387,7 @@ def function_coeffs(M: np.ndarray, eigvals:np.ndarray|None|Multiplicity=None, mu
     cs = scipy.linalg.solve(b, matrix_power_series(M, len(b)))
   return cs, ev_mult
 
-def apply_fn(M: np.ndarray, f, *dfs, gen_df=None, eigvals:np.ndarray|None|Multiplicity=None, coeffs:np.ndarray|None=None, normalize_to:float|None=1., **kwargs):
+def apply_fn(M: np.ndarray, f, *dfs, gen_df=None, eigvals:np.ndarray|None|Multiplicity=None, coeffs:np.ndarray|None=None, real_if_close=True, normalize_to:float|None=1., **kwargs):
   '''Apply a scalar function to a matrix using spectral decomposition.
 
   If `eigvals` is of type Multiplicity and `coeffs` is provided then `M` is ignored and the
@@ -394,6 +418,8 @@ def apply_fn(M: np.ndarray, f, *dfs, gen_df=None, eigvals:np.ndarray|None|Multip
     calculated using `eigval_multiplicity`
   cs : Optional[ndarray]
     The `phi`-tensor. See also `function_coeffs`
+  real_if_close : bool = True
+    Whether to `np.real_if_close` at the end.
   normalize_to : Optional[float] = 1.
     Scaling factor to normalize eigenvalues, improving numerical stability.
 
@@ -456,4 +482,8 @@ def apply_fn(M: np.ndarray, f, *dfs, gen_df=None, eigvals:np.ndarray|None|Multip
     cs, ev_mult = function_coeffs(M, eigvals, normalize_to=normalize_to, **_kwargs)
   f_ev_mult = ev_mult.map(f, *dfs, gen_df=gen_df, **kwargs)
   ret = np.tensordot(f_ev_mult, cs, ((0, ), (0, )))
+
+  if real_if_close:
+    ret = np.real_if_close(ret)
+
   return ret

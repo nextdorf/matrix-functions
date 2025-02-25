@@ -3,8 +3,35 @@ import scipy
 from . import MSpace, apply_fn
 
 class FArray:
+  '''Represents a functional array associated with a matrix space.
+  
+  This class enables efficient function application to matrices using precomputed function coefficients.
+  
+  Attributes
+  ----------
+  space : MSpace
+      The underlying matrix space associated with the functional array.
+  mult_space : str
+      Defines the multiplication space ('min' by default).
+  bare : np.ndarray
+      The function coefficients tensor. If not provided, it is copied from `space.f_coeffs`.
+  '''
   __array_priority__ = 1
   def __init__(self, space: MSpace, mult_space='min', bare=None, stay_lifted=True):
+    '''
+    Initialize an FArray instance.
+    
+    Parameters
+    ----------
+    space : MSpace
+        The matrix space associated with this functional array.
+    mult_space : str, optional
+        The multiplication space, default is 'min'.
+    bare : np.ndarray, optional
+        Precomputed function coefficients. Defaults to `space.f_coeffs` if not provided.
+    stay_lifted : bool, optional
+        Whether the object remains lifted when applying functions.
+    '''
     self.space = space
     self.mult_space=mult_space
     self.bare = np.copy(space.f_coeffs) if bare is None else bare
@@ -12,21 +39,38 @@ class FArray:
 
   @staticmethod
   def from_matrix(M: np.ndarray, **kwargs):
+    '''
+    Create an FArray instance from a matrix.
+    
+    Parameters
+    ----------
+    M : np.ndarray
+        The input matrix.
+    **kwargs : dict
+        Optional keyword arguments, including:
+        - eigvals: Precomputed eigenvalues.
+        - mult_space: Multiplication space setting.
+        - bare: Precomputed function coefficients.
+        - stay_lifted: Whether the instance should stay lifted.
+    
+    Returns
+    -------
+    FArray
+        An instance of the functional array.
+    '''
     _kwargs = {k: kwargs[k] for k in 'eigvals'.split() if k in kwargs}
     space = MSpace(M, **_kwargs)
     _kwargs = {k: kwargs[k] for k in 'mult_space bare stay_lifted'.split() if k in kwargs}
     return FArray(space, **_kwargs)
 
   def __call__(self, f, *dfs, gen_df=None, stay_lifted=None, real_if_close='auto', **kwargs):
-    ret = apply_fn(M=None, f=f, dfs=dfs, gen_df=gen_df, eigvals=self.space.multiplicity, coeffs=self.bare, mult_space=self.mult_space, **kwargs)
-
     if isinstance(real_if_close, str):
       if real_if_close == 'auto':
         real_if_close = not np.iscomplexobj(self.space.M)
       else:
         raise ValueError(f'Unsupported value for real_if_close: {real_if_close}')
-    if real_if_close:
-      ret = np.real_if_close(ret)
+
+    ret = apply_fn(M=None, f=f, dfs=dfs, gen_df=gen_df, eigvals=self.space.multiplicity, coeffs=self.bare, mult_space=self.mult_space, real_if_close=real_if_close, **kwargs)
 
     ret_shape = np.shape(ret)
     is_squre_matrix = len(ret_shape)==2 and ret_shape[0] == ret_shape[1]
