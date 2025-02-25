@@ -64,29 +64,49 @@ f_M = vals(f)  # Evaluate the function over the time steps
 
 
 # Plot the computed function values
-fig, (ax, bx) = plt.subplots(2, figsize=(8, 6), sharex=True, gridspec_kw={'height_ratios': [2, 1]})
+fig, (ax, bx, cx) = plt.subplots(3, figsize=(8, 9), gridspec_kw={'height_ratios': [2, 1, 1]})
 fig.suptitle(f'Smooth Continuation of Random Signal with DOF={2*num}')
 fig.tight_layout(pad=1.)
 
 # Plot the reconstructed function
 ax.plot(ts, f_M, 'b-', label='Continuation of sampled function')
 ax.plot(t_sampled, f_sampled, 'ro', label=f'Sampled at step size {dt_sample}')
+ax.fill_betweenx((-1e8, 1e8), 0, 1, color='r', alpha=.2, label=f'Sampled region')
 ax.set_xlim(-1, 2)
+ax.set_ylim(np.array([np.min(f_M), np.max(f_M)]) * 1.05)
 ax.set_ylabel('Signal')
 ax.legend()
 ax.grid(True)
 
 # Compute error between estimated function and reference function
-err = f_M - np.array([f_ref(t) for t in ts])
+err1 = f_M - np.array([f_ref(t) for t in ts])
 
 # Plot the error
-bx.plot(ts, err, 'b-', label='Error')
+bx.plot(ts, err1, 'b-', label='Error')
 bx.plot(ts, np.zeros_like(ts), 'g-')
-bx.set_ylim(np.array([-1.05, 1.05]) * np.max(abs(err)))
-bx.set_xlabel('Time ($t$)')
+bx.fill_betweenx((-1e8, 1e8), 0, 1, color='r', alpha=.2)
+bx.sharex(ax)
+bx.set_ylim(np.array([-1.05, 1.05]) * np.max(abs(err1)))
 bx.set_ylabel('Signal Error')
 bx.legend()
 bx.grid(True)
+
+# Repeat on bigger scale
+ts = np.linspace(-50, 50, 4000)
+f = lambda x: x ** (ts / dt_sample)
+f_M = vals(f)
+err2 = f_M - np.array([f_ref(t) for t in ts])
+
+cx.plot(ts, err2, 'b-', label='Error')
+cx.plot(ts, np.zeros_like(ts), 'g-')
+cx.fill_betweenx((-1e8, 1e8), 0, 1, color='r', alpha=.2)
+cx.set_xlim((min(ts), max(ts)))
+cx.set_ylim(np.array([-1.05, 1.05]) * np.max(abs(err2)))
+cx.set_xlabel('Time ($t$)')
+cx.set_ylabel('Signal Error')
+cx.legend()
+cx.grid(True)
+
 
 # Display and save the plot
 plt.show(fig)
