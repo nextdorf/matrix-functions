@@ -25,31 +25,31 @@ pip install matrixfuncs
 
 The Cayley-Hamilton theorem states that every square matrix is a root of its own characteristic polynomial. From this it follows that $A^n$ is a linear combination of $A^0,\ A,\ A^2,\ \dots,\ A^{n-1}$ and therefore every polynomial in A is such a linear combination:
 
-```math
+$$
   A^m = \sum_{k=0}^{n-1} \alpha_{mk} A^k
-```
+$$
 
 It turns out that $\alpha_{mk}$ only depends on the eigenvalues $\lambda_1,\ \dots,\ \lambda_n$. Hence, every matrix function can be expressed in in such a way if the function is analytic in the eigenvalues:
 
-```math
+$$
   f(A) = \varphi_{ij}^{(k)} A^i f^{(k)}(\lambda_j)
-```
+$$
 
 ### Computing the Sine Function Using Matrix Recurrence Relations
 
 The sine function satisfies the recurrence relation:
 
-```math
+$$
   sin(x + a) = 2\cos(a) sin(x) - sin(x - a)
-```
+$$
 
 This allows us to express the sine of a shifted angle using matrix multiplication:
 
-```math
+$$
   \begin{bmatrix} sin(x + a) \\ sin(x) \end{bmatrix} =
   \begin{bmatrix} 2\cos(a) & -1 \\ 1 & 0 \end{bmatrix}
   \begin{bmatrix} sin(x) \\ sin(x - a) \end{bmatrix}
-```
+$$
 
 
 
